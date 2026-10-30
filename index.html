@@ -1301,113 +1301,203 @@
         }
 
         // Renderizado del Auricular sobre la cabeza del usuario
+        
         function onFaceResults(results) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
 
-            const landmarks = results.multiFaceLandmarks[0];
+            const lm = results.multiFaceLandmarks[0];
             const w = canvas.width;
             const h = canvas.height;
 
-            // Puntos clave:
-            // 10: Tope superior de la cabeza
-            // 234: Lóbulo / Oreja izquierda
-            // 454: Lóbulo / Oreja derecha
-            // 152: Mentón
-            const topHead = { x: landmarks[10].x * w, y: landmarks[10].y * h };
-            const leftEar = { x: landmarks[234].x * w, y: landmarks[234].y * h };
-            const rightEar = { x: landmarks[454].x * w, y: landmarks[454].y * h };
+            // Puntos anatómicos reales de MediaPipe Face Mesh:
+            // 10: Frente superior / nacimiento del pelo
+            // 152: Mentón inferior
+            // 234: Lado izquierdo de la mandíbula / base de pómulo
+            // 454: Lado derecho de la mandíbula / base de pómulo
+            // 127: Tragus / entrada oreja izquierda
+            // 356: Tragus / entrada oreja derecha
+            // 6: Entrecejo / puente de la nariz
+            // 168: Centro del entrecejo
+            const forehead = { x: lm[10].x * w, y: lm[10].y * h };
+            const chin = { x: lm[152].x * w, y: lm[152].y * h };
+            const noseBridge = { x: lm[168].x * w, y: lm[168].y * h };
+            const leftTragus = { x: lm[127].x * w, y: lm[127].y * h };
+            const rightTragus = { x: lm[356].x * w, y: lm[356].y * h };
 
-            drawHeadphones(ctx, topHead, leftEar, rightEar);
+            drawRealHeadphones(ctx, forehead, chin, noseBridge, leftTragus, rightTragus);
         }
 
-        function drawHeadphones(context, top, left, right) {
+        function drawRealHeadphones(context, forehead, chin, nose, leftT, rightT) {
             context.save();
 
-            const earDist = Math.hypot(right.x - left.x, right.y - left.y);
-            const cupRadiusX = earDist * 0.18;
-            const cupRadiusY = earDist * 0.28;
+            // 1. Cálculo de escala y orientación espacial de la cabeza
+            const faceHeight = Math.hypot(chin.x - forehead.x, chin.y - forehead.y);
+            const tragusDist = Math.hypot(rightT.x - leftT.x, rightT.y - leftT.y);
+            const headAngle = Math.atan2(rightT.y - leftT.y, rightT.x - leftT.x);
 
-            // 1. Vincha Lumos Superior (Arco acolchado con ribete dorado)
+            // Vector perpendicular (hacia arriba de la cabeza)
+            const upVec = {
+                x: -(chin.y - forehead.y) / faceHeight,
+                y: (chin.x - forehead.x) / faceHeight
+            };
+
+            // Vector horizontal (de oreja izquierda a derecha)
+            const rightVec = {
+                x: (rightT.x - leftT.x) / tragusDist,
+                y: (rightT.y - leftT.y) / tragusDist
+            };
+
+            // Las orejas anatómicas están situadas lateralmente más afuera que los pómulos (234/454)
+            // Desplazamos los centros de las cúpulas over-ear hacia afuera y a la altura de la oreja
+            const earOffsetX = tragusDist * 0.18; 
+            const earOffsetY = faceHeight * 0.05;
+
+            const leftEarCenter = {
+                x: leftT.x - rightVec.x * earOffsetX + upVec.x * earOffsetY,
+                y: leftT.y - rightVec.y * earOffsetX + upVec.y * earOffsetY
+            };
+
+            const rightEarCenter = {
+                x: rightT.x + rightVec.x * earOffsetX + upVec.x * earOffsetY,
+                y: rightT.y + rightVec.y * earOffsetX + upVec.y * earOffsetY
+            };
+
+            // El vértice de la cabeza (cráneo) está significativamente más arriba que la frente (punto 10)
+            const skullTop = {
+                x: forehead.x + upVec.x * (faceHeight * 0.42),
+                y: forehead.y + upVec.y * (faceHeight * 0.42)
+            };
+
+            // Dimensiones proporcionales reales Over-Ear (alto ~10cm, ancho ~8cm)
+            const cupRadiusX = faceHeight * 0.17;
+            const cupRadiusY = faceHeight * 0.27;
+
+            // -------------------------------------------------------------
+            // PASO 1: Vincha Lumos Superior (Arco Ergonómico sobre el cráneo)
+            // -------------------------------------------------------------
+            const bandWidth = faceHeight * 0.09;
+
+            // Arco exterior acolchado
             context.beginPath();
-            context.moveTo(left.x, left.y);
-            // Punto de control arqueado hacia arriba de la cabeza
-            const archY = Math.min(top.y - (earDist * 0.25), left.y - (earDist * 0.45));
-            const centerX = (left.x + right.x) / 2;
-            context.quadraticCurveTo(centerX, archY, right.x, right.y);
-            context.lineWidth = earDist * 0.12;
+            context.moveTo(leftEarCenter.x, leftEarCenter.y - cupRadiusY * 0.5);
+            // Punto de curvatura arqueado en la coronilla
+            const archPeak = {
+                x: skullTop.x,
+                y: skullTop.y - faceHeight * 0.08
+            };
+            context.quadraticCurveTo(archPeak.x, archPeak.y, rightEarCenter.x, rightEarCenter.y - cupRadiusY * 0.5);
+            context.lineWidth = bandWidth;
             context.strokeStyle = currentTheme.cup;
             context.lineCap = 'round';
             context.stroke();
 
-            // Ribete dorado de la vincha
-            context.lineWidth = earDist * 0.035;
+            // Ribete y filamentos dorados estelares en la vincha
+            context.lineWidth = faceHeight * 0.022;
             context.strokeStyle = currentTheme.trim;
             context.stroke();
 
-            // 2. Orejeras Over-Ear (Izquierda y Derecha)
-            [left, right].forEach((pt, idx) => {
-                const isLeft = idx === 0;
+            // Línea central de luz de la vincha
+            context.lineWidth = faceHeight * 0.008;
+            context.strokeStyle = currentTheme.led;
+            context.shadowColor = currentTheme.glow;
+            context.shadowBlur = 10;
+            context.stroke();
+            context.shadowBlur = 0;
 
-                // Cúpula base oscura
+            // -------------------------------------------------------------
+            // PASO 2: Cúpulas Over-Ear Laterales
+            // -------------------------------------------------------------
+            [ { pt: leftEarCenter, isLeft: true }, { pt: rightEarCenter, isLeft: false } ].forEach(({ pt, isLeft }) => {
+                context.save();
+                context.translate(pt.x, pt.y);
+                context.rotate(headAngle + (isLeft ? -0.1 : 0.1));
+
+                // 2.1 Almohadilla anatómica (Grosor y aislamiento)
                 context.beginPath();
-                context.ellipse(pt.x, pt.y, cupRadiusX, cupRadiusY, 0, 0, Math.PI * 2);
+                context.ellipse(0, 0, cupRadiusX * 1.15, cupRadiusY * 1.1, 0, 0, Math.PI * 2);
+                context.fillStyle = '#05070e';
+                context.fill();
+                context.lineWidth = 2.5;
+                context.strokeStyle = '#1e293b';
+                context.stroke();
+
+                // 2.2 Cúpula exterior principal (Color de la Orden)
+                context.beginPath();
+                context.ellipse(0, 0, cupRadiusX, cupRadiusY, 0, 0, Math.PI * 2);
                 context.fillStyle = currentTheme.cup;
                 context.fill();
-                context.lineWidth = 3;
+                context.lineWidth = 3.5;
                 context.strokeStyle = currentTheme.trim;
                 context.stroke();
 
-                // Aro LED Luminoso Reactivo
+                // 2.3 Halo LED Bioluminiscente Reactivo
                 context.beginPath();
-                context.ellipse(pt.x, pt.y, cupRadiusX * 0.75, cupRadiusY * 0.75, 0, 0, Math.PI * 2);
-                context.lineWidth = 4;
+                context.ellipse(0, 0, cupRadiusX * 0.78, cupRadiusY * 0.78, 0, 0, Math.PI * 2);
+                context.lineWidth = 5;
                 context.strokeStyle = currentTheme.led;
                 context.shadowColor = currentTheme.glow;
-                context.shadowBlur = 15;
+                context.shadowBlur = 18;
                 context.stroke();
 
-                // Brújula Astral Central en la cúpula
-                context.shadowBlur = 8;
+                // 2.4 Brújula Astral Central
+                context.shadowBlur = 6;
                 context.strokeStyle = currentTheme.trim;
                 context.lineWidth = 2;
                 context.beginPath();
-                context.arc(pt.x, pt.y, cupRadiusX * 0.35, 0, Math.PI * 2);
+                context.arc(0, 0, cupRadiusX * 0.42, 0, Math.PI * 2);
                 context.stroke();
 
-                // Cruz estelar central
+                // Cruz estelar de la cúpula
                 context.beginPath();
-                context.moveTo(pt.x, pt.y - cupRadiusX * 0.45);
-                context.lineTo(pt.x, pt.y + cupRadiusX * 0.45);
-                context.moveTo(pt.x - cupRadiusX * 0.3, pt.y);
-                context.lineTo(pt.x + cupRadiusX * 0.3, pt.y);
+                context.moveTo(0, -cupRadiusY * 0.55);
+                context.lineTo(0, cupRadiusY * 0.55);
+                context.moveTo(-cupRadiusX * 0.42, 0);
+                context.lineTo(cupRadiusX * 0.42, 0);
                 context.stroke();
 
-                // Alas Doradas Aether sobresaliendo a los laterales
-                context.shadowBlur = 12;
-                context.shadowColor = 'rgba(230, 183, 88, 0.8)';
+                // Núcleo brillante
+                context.fillStyle = '#ffffff';
+                context.beginPath();
+                context.arc(0, 0, 3, 0, Math.PI * 2);
+                context.fill();
+
+                // -------------------------------------------------------------
+                // 2.5 Alas Aether Doradas (Encastre magnético lateral)
+                // -------------------------------------------------------------
+                context.shadowBlur = 14;
+                context.shadowColor = 'rgba(230, 183, 88, 0.85)';
                 context.fillStyle = currentTheme.trim;
+
+                const wingSign = isLeft ? -1 : 1;
                 context.beginPath();
-                const wingDir = isLeft ? -1 : 1;
-                context.moveTo(pt.x, pt.y - cupRadiusY * 0.3);
-                context.quadraticCurveTo(
-                    pt.x + (wingDir * cupRadiusX * 1.6), 
-                    pt.y - cupRadiusY * 1.2, 
-                    pt.x + (wingDir * cupRadiusX * 2.2), 
-                    pt.y - cupRadiusY * 0.9
+                // Base del anclaje en el borde superior de la cúpula
+                context.moveTo(wingSign * cupRadiusX * 0.6, -cupRadiusY * 0.35);
+                // Pluma principal curvada hacia arriba y afuera
+                context.bezierCurveTo(
+                    wingSign * (cupRadiusX * 2.2), -cupRadiusY * 1.5,
+                    wingSign * (cupRadiusX * 2.9), -cupRadiusY * 1.1,
+                    wingSign * (cupRadiusX * 3.3), -cupRadiusY * 0.7
                 );
+                // Retorno de plumas secundarias
                 context.quadraticCurveTo(
-                    pt.x + (wingDir * cupRadiusX * 1.4), 
-                    pt.y - cupRadiusY * 0.4, 
-                    pt.x + (wingDir * cupRadiusX * 0.5), 
-                    pt.y
+                    wingSign * (cupRadiusX * 2.1), -cupRadiusY * 0.1,
+                    wingSign * (cupRadiusX * 0.9), cupRadiusY * 0.15
                 );
                 context.closePath();
                 context.fill();
+
+                // Ribete de pluma
+                context.lineWidth = 1.5;
+                context.strokeStyle = '#fff5cf';
+                context.stroke();
+
+                context.restore();
             });
 
             context.restore();
         }
+
 
         // Capturar foto para compartir
         snapBtn.addEventListener('click', () => {
