@@ -1386,89 +1386,90 @@
         
         
         
-        // Sistema de Doble Anclaje a Orejas Reales (Flexible Headband Rig)
-        var imgEarLeft = new Image();
-        imgEarLeft.src = 'lumos_img/lumus_ear_left.png';
+        
+        // Motor de Realidad Aumentada LUMUS: Asset Completo Unificado
+        var arColorImages = {
+            nebula: new Image(),
+            solaris: new Image(),
+            veridian: new Image(),
+            aurora: new Image(),
+            void: new Image()
+        };
+        arColorImages.nebula.src = 'lumos_img/ar_nebula.png';
+        arColorImages.solaris.src = 'lumos_img/ar_solaris.png';
+        arColorImages.veridian.src = 'lumos_img/ar_veridian.png';
+        arColorImages.aurora.src = 'lumos_img/ar_aurora.png';
+        arColorImages.void.src = 'lumos_img/ar_void.png';
 
-        var imgEarRight = new Image();
-        imgEarRight.src = 'lumos_img/lumus_ear_right.png';
+        var activeColorKey = 'nebula';
 
-        var imgHeadband = new Image();
-        imgHeadband.src = 'lumos_img/lumus_headband.png';
+        // Manejador del Selector de Colores (cambio instantáneo de producto real)
+        colorBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                colorBtns.forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                var key = btn.getAttribute('data-color');
+                activeColorKey = key;
+                var names = {
+                    nebula: 'Nebula (Azul Cósmico)',
+                    solaris: 'Solaris (Fuego Solar)',
+                    veridian: 'Veridian (Bosque de Jade)',
+                    aurora: 'Aurora (Rosa Místico)',
+                    void: 'Stellar Void (Negro Signature)'
+                };
+                if (colorNameLabel) colorNameLabel.textContent = 'Edición: ' + (names[key] || key);
+            });
+        });
 
         function drawPhotorealHeadphones(context, lm, w, h) {
-            if (!imgEarLeft.complete || !imgEarRight.complete) return;
+            var activeImg = arColorImages[activeColorKey] || arColorImages.nebula;
+            if (!activeImg.complete || activeImg.naturalWidth === 0) return;
 
-            // Oreja izquierda real (234) y derecha real (454)
-            var pLeft = { x: lm[234].x * w, y: lm[234].y * h };
-            var pRight = { x: lm[454].x * w, y: lm[454].y * h };
+            // Puntos craneales de referencia MediaPipe FaceMesh
             var pForehead = { x: lm[10].x * w, y: lm[10].y * h };
             var pChin = { x: lm[152].x * w, y: lm[152].y * h };
+            var pLeft = { x: lm[234].x * w, y: lm[234].y * h };
+            var pRight = { x: lm[454].x * w, y: lm[454].y * h };
             var pNose = { x: lm[168].x * w, y: lm[168].y * h };
 
-            // Distancia entre orejas y dimensiones de cabeza
+            // Geometría de la cabeza
             var earDist = Math.hypot(pRight.x - pLeft.x, pRight.y - pLeft.y);
             var faceHeight = Math.hypot(pChin.x - pForehead.x, pChin.y - pForehead.y);
             var headAngle = Math.atan2(pRight.y - pLeft.y, pRight.x - pLeft.x);
 
-            // Tamaño proporcional de cada copa over-ear (con su ala dorada)
-            // Cada copa mide aprox el 75% del ancho de la cara y altura proporcional
-            var cupWidth = earDist * 0.76;
-            var cupHeight = cupWidth * (imgEarLeft.naturalHeight / imgEarLeft.naturalWidth);
-
-            // Ancho de la vincha flexible (conecta exactamente las dos orejas con un extra de holgura)
-            var bandWidth = earDist * 1.35;
-            var bandHeight = bandWidth * (imgHeadband.naturalHeight / imgHeadband.naturalWidth);
+            // Escala Over-Ear calibrada:
+            // 1.82x earDist coloca exactamente las copas a ambos lados de las orejas sin apretar los ojos
+            var targetWidth = earDist * 1.82;
+            var targetHeight = targetWidth * (activeImg.naturalHeight / activeImg.naturalWidth);
 
             // Centro entre orejas
             var midEarX = (pLeft.x + pRight.x) / 2;
             var midEarY = (pLeft.y + pRight.y) / 2;
-            var topSkullY = midEarY - (faceHeight * 0.45);
 
-            // Giro 3D
+            // Altura de calce: la vincha apoya sobre la coronilla del pelo y las copas caen en las orejas
+            var verticalOffset = faceHeight * 0.28;
+
+            // Giro 3D suave (Yaw)
             var distToLeft = Math.hypot(pNose.x - pLeft.x, pNose.y - pLeft.y);
             var distToRight = Math.hypot(pNose.x - pRight.x, pNose.y - pRight.y);
             var turnRatio = (distToLeft - distToRight) / (distToLeft + distToRight);
+            var yawShift = turnRatio * (earDist * 0.26);
+            var yawScale = Math.max(0.78, 1 - Math.abs(turnRatio) * 0.2);
 
             context.save();
-
-            // 1. DIBUJAR VINCHA FLEXIBLE (Conecta las dos orejas pasando por arriba del cráneo)
-            context.save();
-            context.translate(midEarX, topSkullY);
+            // Trasladar al centro craneal exacto
+            context.translate(midEarX + yawShift, midEarY - verticalOffset);
+            // Rotar con el ángulo del cráneo
             context.rotate(headAngle);
-            if (currentTheme && currentTheme.filter) context.filter = currentTheme.filter;
-            context.drawImage(imgHeadband, -bandWidth / 2, -bandHeight * 0.35, bandWidth, bandHeight);
-            context.restore();
+            // Ajustar perspectiva en giros de cabeza
+            context.scale(yawScale, 1);
 
-            // 2. DIBUJAR COPA IZQUIERDA (Clavada en la oreja izquierda real de la persona)
-            context.save();
-            // Desplazamiento lateral hacia el exterior de la cabeza
-            var leftEarAnchorX = pLeft.x - Math.cos(headAngle) * (cupWidth * 0.22);
-            var leftEarAnchorY = pLeft.y - Math.sin(headAngle) * (cupWidth * 0.22);
-            context.translate(leftEarAnchorX, leftEarAnchorY);
-            context.rotate(headAngle);
-            // Perspectiva si gira la cabeza
-            var leftScale = 1 - (turnRatio * 0.25);
-            context.scale(Math.max(0.65, leftScale), 1);
-            if (currentTheme && currentTheme.filter) context.filter = currentTheme.filter;
-            // Dibujar la copa centrada en la oreja
-            context.drawImage(imgEarLeft, -cupWidth * 0.65, -cupHeight * 0.65, cupWidth, cupHeight);
-            context.restore();
-
-            // 3. DIBUJAR COPA DERECHA (Clavada en la oreja derecha real de la persona)
-            context.save();
-            var rightEarAnchorX = pRight.x + Math.cos(headAngle) * (cupWidth * 0.22);
-            var rightEarAnchorY = pRight.y + Math.sin(headAngle) * (cupWidth * 0.22);
-            context.translate(rightEarAnchorX, rightEarAnchorY);
-            context.rotate(headAngle);
-            var rightScale = 1 + (turnRatio * 0.25);
-            context.scale(Math.max(0.65, rightScale), 1);
-            if (currentTheme && currentTheme.filter) context.filter = currentTheme.filter;
-            context.drawImage(imgEarRight, -cupWidth * 0.35, -cupHeight * 0.65, cupWidth, cupHeight);
-            context.restore();
+            // Dibujar el auricular LUMUS completo, unificado y continuo
+            context.drawImage(activeImg, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
 
             context.restore();
         }
+
 
 
 
