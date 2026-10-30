@@ -1483,7 +1483,8 @@
             }
         }
 
-        // Posicionamiento Espacial 3D Matemático
+        
+        // Posicionamiento Espacial 3D y Rotación Facial Multi-Eje
         function onFaceResults3D(results) {
             if (!renderer || !scene || !camera3D || !headphoneGroup) return;
 
@@ -1497,50 +1498,67 @@
             const w = viewport.clientWidth || 640;
             const h = viewport.clientHeight || 480;
 
-            // Puntos clave 3D (X, Y, Z normalizados):
-            // 10: Tope de frente
-            // 152: Mentón
-            // 127/356: Tragus izquierdo y derecho (orejas)
-            // 168: Centro del puente de la nariz (origen)
-            const p168 = lm[168];
-            const p10 = lm[10];
-            const p152 = lm[152];
-            const pLeft = lm[127];
-            const pRight = lm[356];
+            // Puntos de referencia anatómicos clave de MediaPipe (con coordenadas X, Y, Z normalizadas):
+            // 1: Punta de la nariz (sobresale hacia adelante en Z)
+            // 168: Entreojo / puente nasal (centro geométrico de la cara)
+            // 10: Tope de la frente
+            // 152: Mentón inferior
+            // 234: Oreja / sien izquierda
+            // 454: Oreja / sien derecha
+            const noseTip = lm[1];
+            const noseBridge = lm[168];
+            const forehead = lm[10];
+            const chin = lm[152];
+            const leftEar = lm[234];
+            const rightEar = lm[454];
 
-            // Distancia entre orejas en espacio de pantalla
-            const earDistScreen = Math.hypot((pRight.x - pLeft.x) * w, (pRight.y - pLeft.y) * h);
-            const faceHeightScreen = Math.hypot((p152.x - p10.x) * w, (p152.y - p10.y) * h);
+            // 1. CÁLCULO DE ROTACIÓN 3D COMPLETA (Yaw, Pitch, Roll)
+            
+            // YAW (Giro lateral hacia izquierda o derecha):
+            // Comparamos el desplazamiento horizontal de la punta de la nariz respecto al centro de las dos orejas
+            const midEarX = (leftEar.x + rightEar.x) / 2;
+            const faceWidth = Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y);
+            // Si miras a la derecha, la nariz se desplaza a la derecha del centro entre orejas
+            const yawRaw = (noseTip.x - midEarX) / (faceWidth * 0.35);
+            // Amplificamos y limitamos a ángulos naturales (-75 a +75 grados)
+            const yaw = Math.max(Math.min(yawRaw * 1.35, 1.3), -1.3);
 
-            // Mapeo de coordenadas de pantalla a espacio de mundo 3D de Three.js
-            // Centro de pantalla = (0, 0)
-            const worldX = (p168.x - 0.5) * w;
-            // Eje Y invertido en Three.js
-            // Desplazamos hacia arriba de la nariz (+faceHeightScreen * 0.22) para colocar el eje en el canal auditivo/vincha
-            const worldY = -(p168.y - 0.5) * h + (faceHeightScreen * 0.24);
+            // PITCH (Inclinación vertical: mirar hacia arriba o hacia abajo):
+            // Comparamos la posición de la punta de la nariz respecto a la línea media entre frente y mentón
+            const midFaceY = (forehead.y + chin.y) / 2;
+            const faceHeight = Math.hypot(chin.x - forehead.x, chin.y - forehead.y);
+            const pitchRaw = (noseTip.y - midFaceY) / (faceHeight * 0.28);
+            const pitch = Math.max(Math.min((pitchRaw - 0.2) * 1.25, 1.1), -1.1);
 
-            // Profundidad Z estimada a partir del ancho facial (cuanto más cerca a la cámara, mayor ancho)
-            const estimatedZ = 500 - (earDistScreen * 2.8);
+            // ROLL (Inclinación lateral de oreja a oreja):
+            const roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
 
-            headphoneGroup.position.set(worldX, worldY, Math.min(Math.max(estimatedZ, 50), 380));
-
-            // Escala 3D proporcional y real del auricular
-            const baseScale = (earDistScreen / 195) * 1.15;
-            headphoneGroup.scale.set(baseScale, baseScale, baseScale);
-
-            // Rotación 3D en los 3 ejes (Roll, Pitch, Yaw)
-            // 1. Roll (Inclinación de oreja a oreja en Z)
-            const roll = Math.atan2((pRight.y - pLeft.y) * h, (pRight.x - pLeft.x) * w);
-            // 2. Yaw (Giro de cara hacia los lados en Y usando diferencia de profundidad Z entre orejas)
-            const yaw = Math.atan2((pRight.z - pLeft.z) * 100, (pRight.x - pLeft.x) * w) * 1.4;
-            // 3. Pitch (Mirar arriba/abajo en X usando inclinación frente-mentón)
-            const pitch = Math.atan2((p152.z - p10.z) * 100, (p152.y - p10.y) * h) * 1.2;
-
+            // Aplicamos rotación fluida tipo Euler con orden 'YXZ' para que los giros no se bloqueen
+            headphoneGroup.rotation.order = 'YXZ';
+            // Dado que el canvas está espejado (scaleX = -1), invertimos el signo de Yaw para concordancia natural
             headphoneGroup.rotation.set(-pitch, -yaw, roll);
+
+            // 2. POSICIONAMIENTO Y PROFUNDIDAD Z
+            const faceHeightPixels = faceHeight * h;
+            const earDistPixels = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
+
+            // Centro X en pantalla
+            const worldX = (noseBridge.x - 0.5) * w;
+            // Centro Y: colocado justo a la altura del canal auditivo / sienes (arriba de la nariz)
+            const worldY = -(noseBridge.y - 0.5) * h + (faceHeightPixels * 0.22);
+            // Profundidad Z: responde a la cercanía de la cara
+            const estimatedZ = 500 - (earDistPixels * 2.7);
+
+            headphoneGroup.position.set(worldX, worldY, Math.min(Math.max(estimatedZ, 80), 380));
+
+            // 3. ESCALA 3D PROPORCIONAL
+            const baseScale = (earDistPixels / 190) * 1.18;
+            headphoneGroup.scale.set(baseScale, baseScale, baseScale);
 
             headphoneGroup.visible = true;
             renderer.render(scene, camera3D);
         }
+
 
         // Captura de selfie en alta resolución
         snapBtn.addEventListener('click', () => {
