@@ -1384,101 +1384,71 @@
 
         
         
-        // Calibración Anatómica Estricta con MediaPipe Face Mesh
+        
+        // Calibración Anatómica Perfecta Over-Ear
         var overlayImg = new Image();
         overlayImg.src = 'lumos_img/lumus_ar_overlay.png';
 
         function drawPhotorealHeadphones(context, lm, w, h) {
             if (!overlayImg.complete || overlayImg.naturalWidth === 0) return;
 
-            // 1. Puntos anatómicos de precisión
-            var topForehead = lm[10];  // Nacimiento del cabello
-            var chin = lm[152];         // Base del mentón
-            var leftEar = lm[234];      // Borde lateral izquierdo de la cabeza (oreja)
-            var rightEar = lm[454];     // Borde lateral derecho de la cabeza (oreja)
-            var noseBridge = lm[168];   // Centro facial entre los ojos
+            // Puntos clave de MediaPipe FaceMesh:
+            // 10: Tope de la frente
+            // 152: Mentón
+            // 234: Borde exterior de oreja izquierda
+            // 454: Borde exterior de oreja derecha
+            // 168: Entreojo / puente de la nariz
+            var pForehead = { x: lm[10].x * w, y: lm[10].y * h };
+            var pChin = { x: lm[152].x * w, y: lm[152].y * h };
+            var pLeft = { x: lm[234].x * w, y: lm[234].y * h };
+            var pRight = { x: lm[454].x * w, y: lm[454].y * h };
+            var pNose = { x: lm[168].x * w, y: lm[168].y * h };
 
-            // Coordenadas en píxeles reales del visor
-            var pForehead = { x: topForehead.x * w, y: topForehead.y * h };
-            var pChin = { x: chin.x * w, y: chin.y * h };
-            var pLeft = { x: leftEar.x * w, y: leftEar.y * h };
-            var pRight = { x: rightEar.x * w, y: rightEar.y * h };
-            var pNose = { x: noseBridge.x * w, y: noseBridge.y * h };
-
-            // 2. Vector vertical anatómico de la cabeza (del mentón a la frente)
+            // Distancia entre orejas y altura de la cara
+            var earDist = Math.hypot(pRight.x - pLeft.x, pRight.y - pLeft.y);
             var faceHeight = Math.hypot(pChin.x - pForehead.x, pChin.y - pForehead.y);
             var headAngle = Math.atan2(pRight.y - pLeft.y, pRight.x - pLeft.x);
 
-            // 3. Ubicación del centro del canal auditivo / sienes:
-            // Se ubica a la altura media entre ambas orejas, con ligera elevación hacia los ojos
+            // Escala calibrada: el auricular debe tener un vano interior suficiente para no tapar los ojos
+            // Un ancho de 2.22x la distancia entre sienes coloca las almohadillas exactamente a los lados de la cabeza
+            var targetWidth = earDist * 2.22;
+            var targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
+
+            // Centro entre orejas
             var midEarX = (pLeft.x + pRight.x) / 2;
             var midEarY = (pLeft.y + pRight.y) / 2;
 
-            // La vincha de los auriculares debe elevarse sobre el cráneo
-            // Proyectamos el centro de anclaje del auricular a la altura exacta de las orejas/sienes
-            var earDist = Math.hypot(pRight.x - pLeft.x, pRight.y - pLeft.y);
+            // Elevación vertical: las almohadillas deben caer en las orejas reales y la vincha sobre el pelo
+            // En el PNG del auricular, las almohadillas están abajo y la vincha arriba.
+            // Para que las almohadillas coincidan con midEarY, elevamos el centro del PNG:
+            var verticalLift = faceHeight * 0.42;
 
-            // Escala natural Over-Ear:
-            // Unos auriculares over-ear reales tienen un ancho exterior de ~19 cm frente a un ancho de cráneo de ~15 cm
-            // Por tanto, el ancho total del render debe ser un 40% mayor que la distancia entre sienes (earDist * 1.42)
-            var targetWidth = earDist * 1.55;
-            var targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
-
-            // El centro de masa del PNG del auricular (donde caen las orejas en el gráfico)
-            // En el PNG de los auriculares, la línea de las orejeras está situada aproximadamente al 55% de la altura total
-            var anchorOffsetY = targetHeight * 0.12;
-
-            // 4. Giro 3D (Yaw):
-            // Comparación de distancia relativa de la nariz a cada oreja
+            // Giro 3D (Yaw) suave:
             var distToLeft = Math.hypot(pNose.x - pLeft.x, pNose.y - pLeft.y);
             var distToRight = Math.hypot(pNose.x - pRight.x, pNose.y - pRight.y);
-            // Ratio de giro: si miras a la derecha, distToRight disminuye
             var turnRatio = (distToLeft - distToRight) / (distToLeft + distToRight);
-            // Limitamos y suavizamos el giro
-            var yawShift = turnRatio * (earDist * 0.28);
-            var yawScale = Math.max(0.75, 1 - Math.abs(turnRatio) * 0.22);
+            var yawShift = turnRatio * (earDist * 0.32);
+            var yawScale = Math.max(0.8, 1 - Math.abs(turnRatio) * 0.18);
 
             context.save();
-            // Trasladar al centro craneal exacto
-            context.translate(midEarX + yawShift, midEarY - anchorOffsetY);
-            // Rotar exactamente con la inclinación del cráneo
+            // Trasladar al centro craneal elevado
+            context.translate(midEarX + yawShift, midEarY - verticalLift);
+            // Rotar con la inclinación del cráneo
             context.rotate(headAngle);
-            // Escalar con perspectiva en giros de cabeza
+            // Perspectiva en giros
             context.scale(yawScale, 1);
 
-            
-            // Aplicar el filtro de color y tono de la Orden seleccionada
+            // Aplicar el filtro de la Orden seleccionada
             if (currentTheme && currentTheme.filter) {
                 context.filter = currentTheme.filter;
             }
 
-            // Dibujar el auricular perfectamente calzado
+            // Dibujar el auricular perfectamente encajado sobre las orejas y el cráneo
             context.drawImage(overlayImg, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
-
-            // Resplandor LED bioluminiscente exterior en el color de la Orden
-            if (currentTheme && currentTheme.glow) {
-                context.filter = 'none';
-                context.strokeStyle = currentTheme.glow;
-                context.shadowColor = currentTheme.glow;
-                context.shadowBlur = 25;
-                context.lineWidth = 4;
-                // Anillos LED en las cúpulas laterales
-                var cupOffsetX = targetWidth * 0.38;
-                var cupOffsetY = targetHeight * 0.08;
-                var cupRadius = targetWidth * 0.16;
-
-                context.beginPath();
-                context.arc(-cupOffsetX, cupOffsetY, cupRadius, 0, Math.PI * 2);
-                context.stroke();
-
-                context.beginPath();
-                context.arc(cupOffsetX, cupOffsetY, cupRadius, 0, Math.PI * 2);
-                context.stroke();
-            }
-
 
             context.restore();
         }
+
 
 
         
