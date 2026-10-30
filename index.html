@@ -1360,52 +1360,95 @@
             if (headphoneGroup) headphoneGroup.visible = false;
         };
 
-        function onFaceResults3D(results) {
-            if (!renderer || !scene || !camera3D || !headphoneGroup) return;
+        
+        // Renderizado Ultra-Rápido y Preciso del Auricular Fotorealista
+        var overlayImg = new Image();
+        overlayImg.src = 'lumos_img/lumus_ar_overlay.png';
 
-            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                headphoneGroup.visible = false;
-                renderer.render(scene, camera3D);
-                return;
-            }
-
-            var lm = results.multiFaceLandmarks[0];
-            var w = viewport.clientWidth || 640;
-            var h = viewport.clientHeight || 480;
+        function drawPhotorealHeadphones(context, lm, w, h) {
+            if (!overlayImg.complete || overlayImg.naturalWidth === 0) return;
 
             var forehead = lm[10];
             var chin = lm[152];
             var leftEar = lm[234];
             var rightEar = lm[454];
+            var noseBridge = lm[168];
 
-            var deltaZ_ears = (rightEar.z - leftEar.z);
-            var deltaX_ears = (rightEar.x - leftEar.x);
-            var yaw = Math.atan2(deltaZ_ears, deltaX_ears) * 1.5;
+            // Distancia entre orejas y altura facial
+            var earDist = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
+            var faceHeight = Math.hypot((chin.x - forehead.x) * w, (chin.y - forehead.y) * h);
 
-            var deltaZ_face = (chin.z - forehead.z);
-            var deltaY_face = (chin.y - forehead.y);
-            var pitch = Math.atan2(deltaZ_face, deltaY_face) * 1.2;
-
+            // Ángulo Roll (Inclinación lateral oreja-oreja)
             var roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
 
-            headphoneGroup.rotation.order = 'YXZ';
-            headphoneGroup.rotation.set(-pitch, yaw, roll);
+            // Ángulo Yaw (Giro de cara hacia los costados)
+            var deltaZ_ears = (rightEar.z - leftEar.z);
+            var deltaX_ears = (rightEar.x - leftEar.x);
+            var yaw = Math.atan2(deltaZ_ears, deltaX_ears);
 
-            var earDistPixels = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
-            var faceHeightPixels = Math.hypot((chin.x - forehead.x) * w, (chin.y - forehead.y) * h);
+            // Centro entre orejas (colocado anatómicamente a la altura de los ojos/sienes)
+            var centerX = ((leftEar.x + rightEar.x) / 2) * w;
+            var centerY = (((leftEar.y + rightEar.y) / 2) * h) - (faceHeight * 0.18);
 
-            var midEarScreenX = ((leftEar.x + rightEar.x) / 2 - 0.5) * w;
-            var midEarScreenY = -((leftEar.y + rightEar.y) / 2 - 0.5) * h + (faceHeightPixels * 0.15);
+            // Tamaño proporcional del auricular (más grande que la cabeza para rodearla)
+            var baseWidth = earDist * 1.85;
+            var baseHeight = baseWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
 
-            var estimatedZ = 500 - (earDistPixels * 2.5);
-            headphoneGroup.position.set(midEarScreenX, midEarScreenY, Math.min(Math.max(estimatedZ, 80), 380));
+            context.save();
+            // Nos movemos al centro de la cabeza
+            context.translate(centerX, centerY);
+            // Rotamos con la inclinación de la cabeza
+            context.rotate(roll);
 
-            var baseScale = (earDistPixels / 175) * 1.15;
-            headphoneGroup.scale.set(baseScale, baseScale, baseScale);
+            // Efecto de perspectiva tridimensional al girar la cara:
+            // Al girar la cabeza, comprimimos horizontalmente y desplazamos según el Yaw
+            var yawCompress = Math.cos(yaw);
+            var yawShift = Math.sin(yaw) * (earDist * 0.25);
+            context.scale(yawCompress, 1);
+            context.translate(yawShift, 0);
 
-            headphoneGroup.visible = true;
-            renderer.render(scene, camera3D);
+            // Dibujar el auricular LUMUS centrado
+            context.drawImage(overlayImg, -baseWidth / 2, -baseHeight / 2, baseWidth, baseHeight);
+
+            // Brillo dinámico según la orden seleccionada
+            if (currentTheme && currentTheme.tint) {
+                context.shadowColor = currentTheme.tint;
+                context.shadowBlur = 20;
+            }
+
+            context.restore();
         }
+
+        
+        function onFaceResults3D(results) {
+            var canvas = document.getElementById('ar-canvas');
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.id = 'ar-canvas';
+                canvas.style.position = 'absolute';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvas.style.pointerEvents = 'none';
+                canvas.style.transform = 'scaleX(-1)';
+                if (viewport) viewport.appendChild(canvas);
+            }
+
+            var w = viewport.clientWidth || 640;
+            var h = viewport.clientHeight || 480;
+            canvas.width = w;
+            canvas.height = h;
+
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+
+            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+
+            var lm = results.multiFaceLandmarks[0];
+            drawPhotorealHeadphones(ctx, lm, w, h);
+        }
+
 
         if (snapBtn) {
             snapBtn.addEventListener('click', function() {
