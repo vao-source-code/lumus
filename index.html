@@ -1409,19 +1409,16 @@
             var faceHeight = Math.hypot(pChin.x - pForehead.x, pChin.y - pForehead.y);
             var headAngle = Math.atan2(pRight.y - pLeft.y, pRight.x - pLeft.x);
 
-            // Escala calibrada: el auricular debe tener un vano interior suficiente para no tapar los ojos
-            // Un ancho de 2.22x la distancia entre sienes coloca las almohadillas exactamente a los lados de la cabeza
-            var targetWidth = earDist * 2.22;
+            // Escala calibrada precisa: abraza las orejas reales sin flotar
+            var targetWidth = earDist * 1.62;
             var targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
 
             // Centro entre orejas
             var midEarX = (pLeft.x + pRight.x) / 2;
             var midEarY = (pLeft.y + pRight.y) / 2;
 
-            // Elevación vertical: las almohadillas deben caer en las orejas reales y la vincha sobre el pelo
-            // En el PNG del auricular, las almohadillas están abajo y la vincha arriba.
-            // Para que las almohadillas coincidan con midEarY, elevamos el centro del PNG:
-            var verticalLift = faceHeight * 0.42;
+            // Elevación vertical calibrada (baja a la altura exacta de las orejas)
+            var verticalLift = faceHeight * 0.16;
 
             // Giro 3D (Yaw) suave:
             var distToLeft = Math.hypot(pNose.x - pLeft.x, pNose.y - pLeft.y);
