@@ -1232,13 +1232,35 @@
         var headphoneGroup = null;
         var arTextureMesh = null;
 
+        
         var colorThemes = {
-            nebula: { name: 'Nebula (Azul Cósmico)', tint: '#a855f7' },
-            solaris: { name: 'Solaris (Fuego Solar)', tint: '#ef4444' },
-            veridian: { name: 'Veridian (Bosque de Jade)', tint: '#10b981' },
-            aurora: { name: 'Aurora (Rosa Místico)', tint: '#ec4899' },
-            void: { name: 'Stellar Void (Negro Signature)', tint: '#ffffff' }
+            nebula: { 
+                name: 'Nebula (Azul Cósmico)', 
+                glow: '#a855f7', 
+                filter: 'hue-rotate(0deg) saturate(1.1) brightness(1.0)' 
+            },
+            solaris: { 
+                name: 'Solaris (Fuego Solar)', 
+                glow: '#ef4444', 
+                filter: 'hue-rotate(100deg) saturate(1.4) brightness(1.05)' 
+            },
+            veridian: { 
+                name: 'Veridian (Bosque de Jade)', 
+                glow: '#10b981', 
+                filter: 'hue-rotate(205deg) saturate(1.3) brightness(1.0)' 
+            },
+            aurora: { 
+                name: 'Aurora (Rosa Místico)', 
+                glow: '#ec4899', 
+                filter: 'hue-rotate(300deg) saturate(1.35) brightness(1.15)' 
+            },
+            void: { 
+                name: 'Stellar Void (Negro Signature)', 
+                glow: '#f59e0b', 
+                filter: 'grayscale(0.9) brightness(0.85) contrast(1.2)' 
+            }
         };
+
         var currentTheme = colorThemes.nebula;
 
         colorBtns.forEach(function(btn) {
@@ -1424,8 +1446,36 @@
             // Escalar con perspectiva en giros de cabeza
             context.scale(yawScale, 1);
 
+            
+            // Aplicar el filtro de color y tono de la Orden seleccionada
+            if (currentTheme && currentTheme.filter) {
+                context.filter = currentTheme.filter;
+            }
+
             // Dibujar el auricular perfectamente calzado
             context.drawImage(overlayImg, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
+
+            // Resplandor LED bioluminiscente exterior en el color de la Orden
+            if (currentTheme && currentTheme.glow) {
+                context.filter = 'none';
+                context.strokeStyle = currentTheme.glow;
+                context.shadowColor = currentTheme.glow;
+                context.shadowBlur = 25;
+                context.lineWidth = 4;
+                // Anillos LED en las cúpulas laterales
+                var cupOffsetX = targetWidth * 0.38;
+                var cupOffsetY = targetHeight * 0.08;
+                var cupRadius = targetWidth * 0.16;
+
+                context.beginPath();
+                context.arc(-cupOffsetX, cupOffsetY, cupRadius, 0, Math.PI * 2);
+                context.stroke();
+
+                context.beginPath();
+                context.arc(cupOffsetX, cupOffsetY, cupRadius, 0, Math.PI * 2);
+                context.stroke();
+            }
+
 
             context.restore();
         }
