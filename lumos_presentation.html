@@ -901,6 +901,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -1181,15 +1182,15 @@
         </div>
     </div>
 
-    <!-- Script de Realidad Aumentada & Face-Tracking -->
+    
+    <!-- Script de Realidad Aumentada 3D Profesional con Three.js & MediaPipe -->
     <script>
     (function() {
         const openBtn = document.getElementById('openArBtn');
         const closeBtn = document.getElementById('closeArBtn');
         const modal = document.getElementById('arModal');
         const video = document.getElementById('ar-video');
-        const canvas = document.getElementById('ar-canvas');
-        const ctx = canvas.getContext('2d');
+        const viewport = document.querySelector('.ar-viewport');
         const loading = document.getElementById('arLoading');
         const statusText = document.getElementById('arStatusText');
         const colorBtns = document.querySelectorAll('.ar-color-btn');
@@ -1200,47 +1201,237 @@
         let faceMeshInstance = null;
         let stream = null;
 
-        // Paletas cromáticas para el renderizado AR
+        // Three.js 3D Engine Variables
+        let renderer, scene, camera3D;
+        let headphoneGroup = null;
+        let cupMaterials = [];
+        let ledMaterials = [];
+        let trimMaterials = [];
+
+        // Paletas cromáticas de las 5 Órdenes LUMUS
         const colorThemes = {
-            nebula: { name: 'Nebula (Azul Cósmico)', led: '#a855f7', glow: 'rgba(168, 85, 247, 0.75)', cup: '#0f172a', trim: '#e6b758' },
-            solaris: { name: 'Solaris (Fuego Solar)', led: '#ef4444', glow: 'rgba(239, 68, 68, 0.75)', cup: '#450a0a', trim: '#f59e0b' },
-            veridian: { name: 'Veridian (Bosque de Jade)', led: '#10b981', glow: 'rgba(16, 185, 129, 0.75)', cup: '#022c22', trim: '#d4af37' },
-            aurora: { name: 'Aurora (Rosa Místico)', led: '#ec4899', glow: 'rgba(236, 72, 153, 0.75)', cup: '#500724', trim: '#fb7185' },
-            void: { name: 'Stellar Void (Negro Signature)', led: '#ffffff', glow: 'rgba(255, 255, 255, 0.85)', cup: '#09090b', trim: '#d97706' }
+            nebula: { name: 'Nebula (Azul Cósmico)', led: 0xa855f7, cup: 0x0f172a, trim: 0xe6b758, emissive: 0x9333ea },
+            solaris: { name: 'Solaris (Fuego Solar)', led: 0xef4444, cup: 0x450a0a, trim: 0xf59e0b, emissive: 0xdc2626 },
+            veridian: { name: 'Veridian (Bosque de Jade)', led: 0x10b981, cup: 0x022c22, trim: 0xd4af37, emissive: 0x059669 },
+            aurora: { name: 'Aurora (Rosa Místico)', led: 0xec4899, cup: 0x500724, trim: 0xfb7185, emissive: 0xdb2777 },
+            void: { name: 'Stellar Void (Negro Signature)', led: 0xffffff, cup: 0x09090b, trim: 0xd97706, emissive: 0xd4d4d8 }
         };
 
         let currentTheme = colorThemes.nebula;
+
+        // Inicializar Escena Three.js
+        function initThreeJS() {
+            const width = viewport.clientWidth || 640;
+            const height = viewport.clientHeight || 480;
+
+            // Si ya existe canvas previo, limpiarlo
+            const oldCanvas = document.getElementById('ar-canvas');
+            if (oldCanvas) oldCanvas.remove();
+
+            scene = new THREE.Scene();
+
+            // Cámara de perspectiva coincidente con campo de visión de webcam (~60 grados)
+            camera3D = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera3D.position.set(0, 0, 500);
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.domElement.id = 'ar-canvas';
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.left = '0';
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
+            renderer.domElement.style.pointerEvents = 'none';
+            // Efecto espejo idéntico al video
+            renderer.domElement.style.transform = 'scaleX(-1)';
+            viewport.appendChild(renderer.domElement);
+
+            // Iluminación ambiental y puntual de estudio
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const keyLight = new THREE.DirectionalLight(0xfffaed, 1.4);
+            keyLight.position.set(150, 200, 300);
+            scene.add(keyLight);
+
+            const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+            fillLight.position.set(-150, -50, 200);
+            scene.add(fillLight);
+
+            // Construir el Modelo 3D de Auriculares LUMUS
+            build3DHeadphones();
+        }
+
+        // Construcción Procedural del Modelo 3D LUMUS con materiales PBR y relieve
+        function build3DHeadphones() {
+            headphoneGroup = new THREE.Group();
+            cupMaterials = [];
+            ledMaterials = [];
+            trimMaterials = [];
+
+            // Material Cúpula (Cuero sintético / policarbonato metalizado)
+            const cupMat = new THREE.MeshStandardMaterial({
+                color: currentTheme.cup,
+                roughness: 0.35,
+                metalness: 0.6
+            });
+            cupMaterials.push(cupMat);
+
+            // Material Oro Pulido
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: currentTheme.trim,
+                roughness: 0.25,
+                metalness: 0.9
+            });
+            trimMaterials.push(goldMat);
+
+            // Material Aro LED Bioluminiscente
+            const ledMat = new THREE.MeshStandardMaterial({
+                color: currentTheme.led,
+                emissive: currentTheme.emissive,
+                emissiveIntensity: 2.2,
+                roughness: 0.1,
+                metalness: 0.1
+            });
+            ledMaterials.push(ledMat);
+
+            // Material Almohadillas acústicas
+            const cushionMat = new THREE.MeshStandardMaterial({
+                color: 0x05070e,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+
+            // 1. ARCO DE VINCHA SUPERIOR (Tubo 3D Curvado)
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(-110, -30, 0),
+                new THREE.Vector3(-85, 90, 5),
+                new THREE.Vector3(0, 125, 10),
+                new THREE.Vector3(85, 90, 5),
+                new THREE.Vector3(110, -30, 0)
+            ]);
+
+            const headbandGeo = new THREE.TubeGeometry(curve, 32, 8.5, 12, false);
+            const headbandMesh = new THREE.Mesh(headbandGeo, cupMat);
+            headphoneGroup.add(headbandMesh);
+
+            // Ribete exterior dorado en la vincha
+            const goldRibbonGeo = new THREE.TubeGeometry(curve, 32, 2.8, 8, false);
+            const goldRibbonMesh = new THREE.Mesh(goldRibbonGeo, goldMat);
+            headphoneGroup.add(goldRibbonMesh);
+
+            // 2. CÚPULAS OVER-EAR IZQUIERDA Y DERECHA
+            [-112, 112].forEach((xPos, idx) => {
+                const isLeft = idx === 0;
+                const earcupSubGroup = new THREE.Group();
+                earcupSubGroup.position.set(xPos, -35, 0);
+                earcupSubGroup.rotation.y = isLeft ? 0.2 : -0.2;
+                earcupSubGroup.rotation.z = isLeft ? 0.08 : -0.08;
+
+                // 2.1 Almohadilla acústica interior (Toroide 3D)
+                const cushionGeo = new THREE.TorusGeometry(32, 12, 16, 32);
+                const cushionMesh = new THREE.Mesh(cushionGeo, cushionMat);
+                cushionMesh.rotation.y = Math.PI / 2;
+                earcupSubGroup.add(cushionMesh);
+
+                // 2.2 Cúpula exterior principal (Cilindro con curvatura)
+                const cupGeo = new THREE.CylinderGeometry(35, 33, 26, 32);
+                const cupMesh = new THREE.Mesh(cupGeo, cupMat);
+                cupMesh.rotation.z = Math.PI / 2;
+                cupMesh.position.x = isLeft ? -10 : 10;
+                earcupSubGroup.add(cupMesh);
+
+                // 2.3 Aro de luz LED reactivo
+                const ledGeo = new THREE.TorusGeometry(30, 3.2, 16, 32);
+                const ledMesh = new THREE.Mesh(ledGeo, ledMat);
+                ledMesh.rotation.y = Math.PI / 2;
+                ledMesh.position.x = isLeft ? -22 : 22;
+                earcupSubGroup.add(ledMesh);
+
+                // 2.4 Marco exterior de oro
+                const rimGeo = new THREE.TorusGeometry(35.5, 2.5, 12, 32);
+                const rimMesh = new THREE.Mesh(rimGeo, goldMat);
+                rimMesh.rotation.y = Math.PI / 2;
+                rimMesh.position.x = isLeft ? -18 : 18;
+                earcupSubGroup.add(rimMesh);
+
+                // 2.5 Tapa central con emblema Brújula Astral
+                const badgeGeo = new THREE.CylinderGeometry(18, 18, 2, 24);
+                const badgeMesh = new THREE.Mesh(badgeGeo, goldMat);
+                badgeMesh.rotation.z = Math.PI / 2;
+                badgeMesh.position.x = isLeft ? -23.5 : 23.5;
+                earcupSubGroup.add(badgeMesh);
+
+                // 2.6 Alas Aether 3D en oro inyectado
+                const wingShape = new THREE.Shape();
+                wingShape.moveTo(0, 0);
+                wingShape.quadraticCurveTo(15, 30, 45, 65);
+                wingShape.quadraticCurveTo(20, 40, 5, 20);
+                wingShape.closePath();
+
+                const extrudeSettings = { depth: 3, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 1, bevelThickness: 1 };
+                const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
+                const wingMesh = new THREE.Mesh(wingGeo, goldMat);
+                wingMesh.scale.set(0.7, 0.7, 0.7);
+                wingMesh.position.set(isLeft ? -20 : 20, 8, isLeft ? 10 : -10);
+                wingMesh.rotation.y = isLeft ? Math.PI : 0;
+                wingMesh.rotation.z = isLeft ? 0.4 : -0.4;
+                earcupSubGroup.add(wingMesh);
+
+                headphoneGroup.add(earcupSubGroup);
+            });
+
+            // Ocultar hasta detectar rostro
+            headphoneGroup.visible = false;
+            scene.add(headphoneGroup);
+        }
+
+        // Actualizar paleta en tiempo real
+        function updateTheme3D(theme) {
+            currentTheme = theme;
+            cupMaterials.forEach(m => m.color.setHex(theme.cup));
+            trimMaterials.forEach(m => m.color.setHex(theme.trim));
+            ledMaterials.forEach(m => {
+                m.color.setHex(theme.led);
+                m.emissive.setHex(theme.emissive);
+            });
+        }
 
         colorBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 colorBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const key = btn.getAttribute('data-color');
-                currentTheme = colorThemes[key] || colorThemes.nebula;
-                colorNameLabel.textContent = 'Edición: ' + currentTheme.name;
+                const selected = colorThemes[key] || colorThemes.nebula;
+                colorNameLabel.textContent = 'Edición: ' + selected.name;
+                updateTheme3D(selected);
             });
         });
 
-        // Abrir Modal e inicializar cámara
+        // Apertura Modal
         openBtn.addEventListener('click', async () => {
             modal.classList.add('active');
             loading.style.display = 'flex';
-            statusText.textContent = 'Solicitando acceso a cámara frontal...';
-            await startAR();
+            statusText.textContent = 'Iniciando cámara y motor 3D...';
+            setTimeout(async () => {
+                initThreeJS();
+                await startAR();
+            }, 100);
         });
 
-        // Cerrar Modal y detener cámara para ahorrar batería
         function stopAR() {
             modal.classList.remove('active');
             if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(t => t.stop());
                 stream = null;
             }
             if (cameraInstance) {
                 cameraInstance.stop();
                 cameraInstance = null;
             }
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (headphoneGroup) headphoneGroup.visible = false;
         }
 
         closeBtn.addEventListener('click', stopAR);
@@ -1257,10 +1448,7 @@
                 video.srcObject = stream;
                 await video.play();
 
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-
-                statusText.textContent = 'Cargando detector facial...';
+                statusText.textContent = 'Cargando sensor facial 3D...';
 
                 if (window.FaceMesh) {
                     faceMeshInstance = new FaceMesh({
@@ -1274,7 +1462,7 @@
                         minTrackingConfidence: 0.5
                     });
 
-                    faceMeshInstance.onResults(onFaceResults);
+                    faceMeshInstance.onResults(onFaceResults3D);
 
                     cameraInstance = new Camera(video, {
                         onFrame: async () => {
@@ -1288,240 +1476,101 @@
 
                     await cameraInstance.start();
                     loading.style.display = 'none';
-                } else {
-                    // Fallback directo si la CDN de MediaPipe tarda
-                    loading.style.display = 'none';
-                    renderFallbackLoop();
                 }
-
             } catch (err) {
-                console.warn('Error cámara:', err);
-                statusText.innerHTML = '⚠️ No se pudo acceder a la cámara.<br><small style="color:#94a3b8">Permite el acceso a la cámara en tu navegador.</small>';
+                console.warn(err);
+                statusText.innerHTML = '⚠️ Permite el acceso a la cámara frontal para activar la prueba 3D.';
             }
         }
 
-        // Renderizado del Auricular sobre la cabeza del usuario
-        
-        function onFaceResults(results) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+        // Posicionamiento Espacial 3D Matemático
+        function onFaceResults3D(results) {
+            if (!renderer || !scene || !camera3D || !headphoneGroup) return;
+
+            if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                headphoneGroup.visible = false;
+                renderer.render(scene, camera3D);
+                return;
+            }
 
             const lm = results.multiFaceLandmarks[0];
-            const w = canvas.width;
-            const h = canvas.height;
+            const w = viewport.clientWidth || 640;
+            const h = viewport.clientHeight || 480;
 
-            // Puntos anatómicos reales de MediaPipe Face Mesh:
-            // 10: Frente superior / nacimiento del pelo
-            // 152: Mentón inferior
-            // 234: Lado izquierdo de la mandíbula / base de pómulo
-            // 454: Lado derecho de la mandíbula / base de pómulo
-            // 127: Tragus / entrada oreja izquierda
-            // 356: Tragus / entrada oreja derecha
-            // 6: Entrecejo / puente de la nariz
-            // 168: Centro del entrecejo
-            const forehead = { x: lm[10].x * w, y: lm[10].y * h };
-            const chin = { x: lm[152].x * w, y: lm[152].y * h };
-            const noseBridge = { x: lm[168].x * w, y: lm[168].y * h };
-            const leftTragus = { x: lm[127].x * w, y: lm[127].y * h };
-            const rightTragus = { x: lm[356].x * w, y: lm[356].y * h };
+            // Puntos clave 3D (X, Y, Z normalizados):
+            // 10: Tope de frente
+            // 152: Mentón
+            // 127/356: Tragus izquierdo y derecho (orejas)
+            // 168: Centro del puente de la nariz (origen)
+            const p168 = lm[168];
+            const p10 = lm[10];
+            const p152 = lm[152];
+            const pLeft = lm[127];
+            const pRight = lm[356];
 
-            drawRealHeadphones(ctx, forehead, chin, noseBridge, leftTragus, rightTragus);
+            // Distancia entre orejas en espacio de pantalla
+            const earDistScreen = Math.hypot((pRight.x - pLeft.x) * w, (pRight.y - pLeft.y) * h);
+            const faceHeightScreen = Math.hypot((p152.x - p10.x) * w, (p152.y - p10.y) * h);
+
+            // Mapeo de coordenadas de pantalla a espacio de mundo 3D de Three.js
+            // Centro de pantalla = (0, 0)
+            const worldX = (p168.x - 0.5) * w;
+            // Eje Y invertido en Three.js
+            // Desplazamos hacia arriba de la nariz (+faceHeightScreen * 0.22) para colocar el eje en el canal auditivo/vincha
+            const worldY = -(p168.y - 0.5) * h + (faceHeightScreen * 0.24);
+
+            // Profundidad Z estimada a partir del ancho facial (cuanto más cerca a la cámara, mayor ancho)
+            const estimatedZ = 500 - (earDistScreen * 2.8);
+
+            headphoneGroup.position.set(worldX, worldY, Math.min(Math.max(estimatedZ, 50), 380));
+
+            // Escala 3D proporcional y real del auricular
+            const baseScale = (earDistScreen / 195) * 1.15;
+            headphoneGroup.scale.set(baseScale, baseScale, baseScale);
+
+            // Rotación 3D en los 3 ejes (Roll, Pitch, Yaw)
+            // 1. Roll (Inclinación de oreja a oreja en Z)
+            const roll = Math.atan2((pRight.y - pLeft.y) * h, (pRight.x - pLeft.x) * w);
+            // 2. Yaw (Giro de cara hacia los lados en Y usando diferencia de profundidad Z entre orejas)
+            const yaw = Math.atan2((pRight.z - pLeft.z) * 100, (pRight.x - pLeft.x) * w) * 1.4;
+            // 3. Pitch (Mirar arriba/abajo en X usando inclinación frente-mentón)
+            const pitch = Math.atan2((p152.z - p10.z) * 100, (p152.y - p10.y) * h) * 1.2;
+
+            headphoneGroup.rotation.set(-pitch, -yaw, roll);
+
+            headphoneGroup.visible = true;
+            renderer.render(scene, camera3D);
         }
 
-        function drawRealHeadphones(context, forehead, chin, nose, leftT, rightT) {
-            context.save();
-
-            // 1. Cálculo de escala y orientación espacial de la cabeza
-            const faceHeight = Math.hypot(chin.x - forehead.x, chin.y - forehead.y);
-            const tragusDist = Math.hypot(rightT.x - leftT.x, rightT.y - leftT.y);
-            const headAngle = Math.atan2(rightT.y - leftT.y, rightT.x - leftT.x);
-
-            // Vector perpendicular (hacia arriba de la cabeza)
-            const upVec = {
-                x: -(chin.y - forehead.y) / faceHeight,
-                y: (chin.x - forehead.x) / faceHeight
-            };
-
-            // Vector horizontal (de oreja izquierda a derecha)
-            const rightVec = {
-                x: (rightT.x - leftT.x) / tragusDist,
-                y: (rightT.y - leftT.y) / tragusDist
-            };
-
-            // Las orejas anatómicas están situadas lateralmente más afuera que los pómulos (234/454)
-            // Desplazamos los centros de las cúpulas over-ear hacia afuera y a la altura de la oreja
-            const earOffsetX = tragusDist * 0.18; 
-            const earOffsetY = faceHeight * 0.05;
-
-            const leftEarCenter = {
-                x: leftT.x - rightVec.x * earOffsetX + upVec.x * earOffsetY,
-                y: leftT.y - rightVec.y * earOffsetX + upVec.y * earOffsetY
-            };
-
-            const rightEarCenter = {
-                x: rightT.x + rightVec.x * earOffsetX + upVec.x * earOffsetY,
-                y: rightT.y + rightVec.y * earOffsetX + upVec.y * earOffsetY
-            };
-
-            // El vértice de la cabeza (cráneo) está significativamente más arriba que la frente (punto 10)
-            const skullTop = {
-                x: forehead.x + upVec.x * (faceHeight * 0.42),
-                y: forehead.y + upVec.y * (faceHeight * 0.42)
-            };
-
-            // Dimensiones proporcionales reales Over-Ear (alto ~10cm, ancho ~8cm)
-            const cupRadiusX = faceHeight * 0.17;
-            const cupRadiusY = faceHeight * 0.27;
-
-            // -------------------------------------------------------------
-            // PASO 1: Vincha Lumos Superior (Arco Ergonómico sobre el cráneo)
-            // -------------------------------------------------------------
-            const bandWidth = faceHeight * 0.09;
-
-            // Arco exterior acolchado
-            context.beginPath();
-            context.moveTo(leftEarCenter.x, leftEarCenter.y - cupRadiusY * 0.5);
-            // Punto de curvatura arqueado en la coronilla
-            const archPeak = {
-                x: skullTop.x,
-                y: skullTop.y - faceHeight * 0.08
-            };
-            context.quadraticCurveTo(archPeak.x, archPeak.y, rightEarCenter.x, rightEarCenter.y - cupRadiusY * 0.5);
-            context.lineWidth = bandWidth;
-            context.strokeStyle = currentTheme.cup;
-            context.lineCap = 'round';
-            context.stroke();
-
-            // Ribete y filamentos dorados estelares en la vincha
-            context.lineWidth = faceHeight * 0.022;
-            context.strokeStyle = currentTheme.trim;
-            context.stroke();
-
-            // Línea central de luz de la vincha
-            context.lineWidth = faceHeight * 0.008;
-            context.strokeStyle = currentTheme.led;
-            context.shadowColor = currentTheme.glow;
-            context.shadowBlur = 10;
-            context.stroke();
-            context.shadowBlur = 0;
-
-            // -------------------------------------------------------------
-            // PASO 2: Cúpulas Over-Ear Laterales
-            // -------------------------------------------------------------
-            [ { pt: leftEarCenter, isLeft: true }, { pt: rightEarCenter, isLeft: false } ].forEach(({ pt, isLeft }) => {
-                context.save();
-                context.translate(pt.x, pt.y);
-                context.rotate(headAngle + (isLeft ? -0.1 : 0.1));
-
-                // 2.1 Almohadilla anatómica (Grosor y aislamiento)
-                context.beginPath();
-                context.ellipse(0, 0, cupRadiusX * 1.15, cupRadiusY * 1.1, 0, 0, Math.PI * 2);
-                context.fillStyle = '#05070e';
-                context.fill();
-                context.lineWidth = 2.5;
-                context.strokeStyle = '#1e293b';
-                context.stroke();
-
-                // 2.2 Cúpula exterior principal (Color de la Orden)
-                context.beginPath();
-                context.ellipse(0, 0, cupRadiusX, cupRadiusY, 0, 0, Math.PI * 2);
-                context.fillStyle = currentTheme.cup;
-                context.fill();
-                context.lineWidth = 3.5;
-                context.strokeStyle = currentTheme.trim;
-                context.stroke();
-
-                // 2.3 Halo LED Bioluminiscente Reactivo
-                context.beginPath();
-                context.ellipse(0, 0, cupRadiusX * 0.78, cupRadiusY * 0.78, 0, 0, Math.PI * 2);
-                context.lineWidth = 5;
-                context.strokeStyle = currentTheme.led;
-                context.shadowColor = currentTheme.glow;
-                context.shadowBlur = 18;
-                context.stroke();
-
-                // 2.4 Brújula Astral Central
-                context.shadowBlur = 6;
-                context.strokeStyle = currentTheme.trim;
-                context.lineWidth = 2;
-                context.beginPath();
-                context.arc(0, 0, cupRadiusX * 0.42, 0, Math.PI * 2);
-                context.stroke();
-
-                // Cruz estelar de la cúpula
-                context.beginPath();
-                context.moveTo(0, -cupRadiusY * 0.55);
-                context.lineTo(0, cupRadiusY * 0.55);
-                context.moveTo(-cupRadiusX * 0.42, 0);
-                context.lineTo(cupRadiusX * 0.42, 0);
-                context.stroke();
-
-                // Núcleo brillante
-                context.fillStyle = '#ffffff';
-                context.beginPath();
-                context.arc(0, 0, 3, 0, Math.PI * 2);
-                context.fill();
-
-                // -------------------------------------------------------------
-                // 2.5 Alas Aether Doradas (Encastre magnético lateral)
-                // -------------------------------------------------------------
-                context.shadowBlur = 14;
-                context.shadowColor = 'rgba(230, 183, 88, 0.85)';
-                context.fillStyle = currentTheme.trim;
-
-                const wingSign = isLeft ? -1 : 1;
-                context.beginPath();
-                // Base del anclaje en el borde superior de la cúpula
-                context.moveTo(wingSign * cupRadiusX * 0.6, -cupRadiusY * 0.35);
-                // Pluma principal curvada hacia arriba y afuera
-                context.bezierCurveTo(
-                    wingSign * (cupRadiusX * 2.2), -cupRadiusY * 1.5,
-                    wingSign * (cupRadiusX * 2.9), -cupRadiusY * 1.1,
-                    wingSign * (cupRadiusX * 3.3), -cupRadiusY * 0.7
-                );
-                // Retorno de plumas secundarias
-                context.quadraticCurveTo(
-                    wingSign * (cupRadiusX * 2.1), -cupRadiusY * 0.1,
-                    wingSign * (cupRadiusX * 0.9), cupRadiusY * 0.15
-                );
-                context.closePath();
-                context.fill();
-
-                // Ribete de pluma
-                context.lineWidth = 1.5;
-                context.strokeStyle = '#fff5cf';
-                context.stroke();
-
-                context.restore();
-            });
-
-            context.restore();
-        }
-
-
-        // Capturar foto para compartir
+        // Captura de selfie en alta resolución
         snapBtn.addEventListener('click', () => {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const tCtx = tempCanvas.getContext('2d');
-            // Dibujar video espejado
-            tCtx.save();
-            tCtx.scale(-1, 1);
-            tCtx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-            tCtx.restore();
-            // Dibujar auriculares
-            tCtx.drawImage(canvas, 0, 0);
+            const w = viewport.clientWidth;
+            const h = viewport.clientHeight;
+            const captureCanvas = document.createElement('canvas');
+            captureCanvas.width = w;
+            captureCanvas.height = h;
+            const cCtx = captureCanvas.getContext('2d');
 
-            const dataUrl = tempCanvas.toDataURL('image/png');
+            // 1. Dibujar video espejado
+            cCtx.save();
+            cCtx.scale(-1, 1);
+            cCtx.drawImage(video, -w, 0, w, h);
+            cCtx.restore();
+
+            // 2. Superponer render 3D de Three.js
+            if (renderer) {
+                cCtx.drawImage(renderer.domElement, 0, 0, w, h);
+            }
+
             const link = document.createElement('a');
-            link.download = `LUMOS-TryOn-${currentTheme.name.split(' ')[0]}.png`;
-            link.href = dataUrl;
+            link.download = `LUMUS-3D-TryOn-${currentTheme.name.split(' ')[0]}.png`;
+            link.href = captureCanvas.toDataURL('image/png');
             link.click();
         });
 
     })();
     </script>
+
 
 </body>
 </html>
