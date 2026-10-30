@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMOS — Presentación de Marca, Modelos y Paleta Visual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-space: #070913;
+            --bg-card: #0f1526;
+            --bg-card-hover: #161f36;
+            --gold-primary: #e6b758;
+            --gold-gradient: linear-gradient(135deg, #fce096 0%, #d89e34 50%, #9e6b18 100%);
+            --blue-nebula: #2a3b75;
+            --purple-mystic: #702e8a;
+            --cyan-glow: #38bdf8;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-gold: rgba(230, 183, 88, 0.25);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --shadow-glow: 0 0 35px rgba(230, 183, 88, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-space);
+            color: var(--text-main);
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(112, 46, 138, 0.18) 0%, transparent 40%),
+                radial-gradient(circle at 85% 75%, rgba(56, 189, 248, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 50%, rgba(230, 183, 88, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* Nav */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(7, 9, 19, 0.85);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border-gold);
+            padding: 1.2rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Cinzel', serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 0.28em;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .lumos-star-o {
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 1.15em;
+            height: 1.15em;
+            margin: 0 -0.04em;
+            vertical-align: middle;
+        }
+
+        .lumos-star-o .star-cross {
+            position: absolute;
+            font-size: 1.45em;
+            font-weight: 300;
+            line-height: 1;
+            transform: scale(0.9, 1.4);
+            filter: drop-shadow(0 0 10px rgba(252, 224, 150, 0.9));
+        }
+
+        .lumos-star-o .star-diag {
+            position: absolute;
+            font-size: 1.1em;
+            font-weight: 300;
+            transform: rotate(45deg) scale(0.7, 1.1);
+            filter: drop-shadow(0 0 6px rgba(230, 183, 88, 0.7));
+        }
+
+        .lumos-star-o .star-core {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 12px 3px rgba(255, 255, 255, 0.9), 0 0 20px 6px rgba(245, 158, 11, 0.8);
+        }
+
+        .logo-tagline {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.38em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-top: 0.15rem;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--gold-primary);
+            text-shadow: 0 0 10px rgba(230, 183, 88, 0.5);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Hero Showcase */
+        .hero-banner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-gold);
+            border-radius: 24px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+            position: relative;
+            box-shadow: var(--shadow-glow);
+            overflow: hidden;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .gallery-thumb {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-thumb:hover {
+            transform: scale(1.03);
+            border-color: #fce096;
+        }
+
+        .gallery-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(230, 183, 88, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-content h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            background: var(--gold-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content .subtitle {
+            font-size: 1.15rem;
+            color: var(--cyan-glow);
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-content p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(230, 183, 88, 0.12);
+            border: 1px solid var(--gold-primary);
+            color: var(--gold-primary);
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-img-box {
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        }
+
+        .hero-img-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.6s ease;
+        }
+
+        .hero-img-box:hover img {
+            transform: scale(1.03);
+        }
+
+        /* Section Titles */
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-header h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            color: var(--gold-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        /* 1. PALETA DE COLORES */
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4.5rem;
+        }
+
+        .color-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .color-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--gold-primary);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .color-swatch {
+            height: 150px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 1rem;
+        }
+
+        .swatch-solaris {
+            background: linear-gradient(135deg, #b91c1c 0%, #d97706 50%, #fef08a 100%);
+        }
+
+        .swatch-nebula {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #4338ca 100%);
+        }
+
+        .swatch-veridian {
+            background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #d4af37 100%);
+        }
+
+        .swatch-aurora {
+            background: linear-gradient(135deg, #f43f5e 0%, #ec4899 40%, #fbcfe8 100%);
+        }
+
+        .swatch-void {
+            background: linear-gradient(135deg, #09090b 0%, #27272a 70%, #d89e34 100%);
+        }
+
+        .color-name-badge {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.05em;
+        }
+
+        .color-details {
+            padding: 1.2rem;
+        }
+
+        .color-details h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15rem;
+            color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .color-details .element {
+            font-size: 0.8rem;
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+        }
+
+        .color-codes {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.6rem;
+            border-radius: 8px;
+        }
+
+        /* 2. TAMAÑO Y COTAS VISUALES */
+        .specs-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-gold);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 4.5rem;
+            align-items: center;
+        }
+
+        .specs-diagram {
+            position: relative;
+            background: #090c16;
+            border: 1px dashed var(--gold-primary);
+            border-radius: 14px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .headphone-wireframe {
+            width: 220px;
+            height: 250px;
+            margin: 0 auto;
+            position: relative;
+            border: 5px solid rgba(230, 183, 88, 0.7);
+            border-bottom: none;
+            border-top-left-radius: 120px;
+            border-top-right-radius: 120px;
+        }
+
+        .earcup-left, .earcup-right {
+            position: absolute;
+            bottom: -35px;
+            width: 70px;
+            height: 110px;
+            border-radius: 35px;
+            background: #1e293b;
+            border: 3px solid var(--gold-primary);
+            box-shadow: 0 0 15px rgba(230, 183, 88, 0.4);
+        }
+
+        .earcup-left { left: -35px; }
+        .earcup-right { right: -35px; }
+
+        .dimension-label {
+            position: absolute;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--cyan-glow);
+            background: rgba(7, 9, 19, 0.9);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .dim-height { top: 45%; right: -60px; }
+        .dim-width { top: -25px; left: 50%; transform: translateX(-50%); }
+        .dim-cup { bottom: -55px; left: 50%; transform: translateX(-50%); }
+
+        .specs-info h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            color: var(--gold-primary);
+            margin-bottom: 1.2rem;
+        }
+
+        .spec-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 0.7rem;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.95rem;
+        }
+
+        .spec-label { color: var(--text-muted); }
+        .spec-value { color: #fff; font-weight: 600; }
+
+        /* 3. VARIANTES DE CONECTIVIDAD: BLUETOOTH VS CABLE */
+        .variants-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 4.5rem;
+        }
+
+        .variant-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .variant-card.featured {
+            border-color: var(--gold-primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .variant-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .badge-wireless {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--cyan-glow);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .badge-wired {
+            background: rgba(230, 183, 88, 0.15);
+            color: var(--gold-primary);
+            border: 1px solid var(--gold-primary);
+        }
+
+        .variant-card h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .variant-features {
+            list-style: none;
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .variant-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        .variant-features li span {
+            color: var(--gold-primary);
+            font-weight: bold;
+        }
+
+        /* 4. MODELOS Y DISEÑOS ALTERNATIVOS */
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 4.5rem;
+        }
+
+        .model-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .model-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--gold-primary);
+        }
+
+        .model-header {
+            padding: 1.5rem;
+            background: #12192c;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .model-header h4 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            color: #fff;
+        }
+
+        .model-header .target {
+            font-size: 0.8rem;
+            color: var(--cyan-glow);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .model-body {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .model-body p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .model-price {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .price-tag {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--gold-primary);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-gold);
+            padding: 3rem 2rem;
+            text-align: center;
+            background: #05060d;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 900px) {
+            .hero-banner, .specs-layout, .variants-grid, .models-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                padding: 1rem 1.5rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    
+        .lumos-o{height:1.25em;width:.9em;vertical-align:-0.22em;margin:0 .02em;overflow:visible}
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="display: flex; flex-direction: column;">
+            <div class="logo">
+                LUM<svg class="lumos-o" viewBox="0 0 100 140" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fce096"/><stop offset=".5" stop-color="#e0a940"/><stop offset="1" stop-color="#9e6b18"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle cx="50" cy="75" r="34" fill="none" stroke="url(#lg)" stroke-width="9"/><path filter="url(#gl)" fill="url(#lg)" d="M50 2 L54 71 L96 75 L54 79 L50 138 L46 79 L4 75 L46 71 Z"/><circle cx="50" cy="75" r="3" fill="#fff" filter="url(#gl)"/></svg>S
+            </div>
+            <div class="logo-tagline">MÚSICA • MAGIA • MOVIMIENTO</div>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#paleta">Paleta de Colores</a></li>
+                <li><a href="#dimensiones">Tamaños & Cotas</a></li>
+                <li><a href="#variantes">Wireless vs Cable</a></li>
+                <li><a href="#modelos">Línea de Modelos</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- HERO SHOWCASE -->
+        <section class="hero-banner">
+            <div class="hero-content">
+                <div class="tag-pill">Presentación de Marca & Lookbook 2026</div>
+                <div class="logo" style="font-size: 3.6rem; margin-bottom: 0.5rem;">
+                    LUM<svg class="lumos-o" viewBox="0 0 100 140" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fce096"/><stop offset=".5" stop-color="#e0a940"/><stop offset="1" stop-color="#9e6b18"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle cx="50" cy="75" r="34" fill="none" stroke="url(#lg)" stroke-width="9"/><path filter="url(#gl)" fill="url(#lg)" d="M50 2 L54 71 L96 75 L54 79 L50 138 L46 79 L4 75 L46 71 Z"/><circle cx="50" cy="75" r="3" fill="#fff" filter="url(#gl)"/></svg>S
+                </div>
+                <div class="subtitle">MÚSICA • MAGIA • MOVIMIENTO</div>
+                <p>
+                    Plataforma visual y técnica de la nueva línea de audio inmersivo. Combinando estética celestial de alta costura, simbología geométrica original, encastre magnético de alas coleccionables y tecnología reactiva para la pista y el día a día.
+                </p>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-thumb" style="grid-column: span 2;"><img src="lumos_img/hero.jpg" alt="LUMOS"></div>
+                <div class="gallery-thumb"><img src="lumos_img/packaging.jpg" alt="Packaging"></div>
+                <div class="gallery-thumb"><img src="lumos_img/var_nebula.jpg" alt="Nebula"></div>
+            </div>
+        </section>
+
+        <section id="paleta">
+            <div class="section-header">
+                <h2>1. Paleta de Colores: Las Cinco Órdenes</h2>
+                <p>Cada variante con paneles galácticos propios, terminación dorada y aro LED a tono.</p>
+            </div>
+            <div class="palette-grid">
+                <div class="color-card">
+                    <div class="color-swatch" style="height:240px;background:url(lumos_img/var_solaris.jpg) center/cover"><span class="color-name-badge">Solaris</span></div>
+                    <div class="color-details"><h3>Orden del Fuego Solar</h3><div class="element">Rubí profundo & Oro real</div>
+                        <div class="color-codes"><span>HEX: #B91C1C | #D97706</span><span>LED: Fuego cálido</span></div></div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="height:240px;background:url(lumos_img/var_nebula.jpg) center/cover"><span class="color-name-badge">Nebula</span></div>
+                    <div class="color-details"><h3>Orden del Vacío Astral</h3><div class="element">Azul medianoche & Zafiro</div>
+                        <div class="color-codes"><span>HEX: #0F172A | #4338CA</span><span>LED: Violeta galaxia</span></div></div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="height:240px;background:url(lumos_img/var_veridian.jpg) center/cover"><span class="color-name-badge">Veridian</span></div>
+                    <div class="color-details"><h3>Orden del Bosque Esmeralda</h3><div class="element">Jade & Oro antiguo</div>
+                        <div class="color-codes"><span>HEX: #064E3B | #047857</span><span>LED: Aurora boreal</span></div></div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="height:240px;background:url(lumos_img/var_aurora.jpg) center/cover"><span class="color-name-badge">Aurora</span></div>
+                    <div class="color-details"><h3>Orden de la Nebulosa Rosa</h3><div class="element">Perla rosa & Oro rosa</div>
+                        <div class="color-codes"><span>HEX: #F43F5E | #FBCFE8</span><span>LED: Prisma iridiscente</span></div></div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="height:240px;background:url(lumos_img/var_void.jpg) center/cover"><span class="color-name-badge">Stellar Void</span></div>
+                    <div class="color-details"><h3>Edición Signature</h3><div class="element">Negro carbón & Oro bruñido</div>
+                        <div class="color-codes"><span>HEX: #09090B | #27272A</span><span>LED: Blanco respiración</span></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: TAMAÑO Y DIMENSIONES VISUALES -->
+        <section id="dimensiones">
+            <div class="section-header">
+                <h2>2. Ergonomía, Peso y Cotas Visuales</h2>
+                <p>Diseñado tanto para uso sedentario de alta fidelidad como para la exigencia física y giros en el patinaje artístico.</p>
+            </div>
+
+            <div class="specs-layout">
+                <div class="specs-diagram">
+                    <div class="headphone-wireframe">
+                        <div class="earcup-left"></div>
+                        <div class="earcup-right"></div>
+                        <div class="dimension-label dim-width">Ancho: 185 mm</div>
+                        <div class="dimension-label dim-height">Alto: 205 mm</div>
+                        <div class="dimension-label dim-cup">Profundidad Cup: 45 mm</div>
+                    </div>
+                    <p style="margin-top: 3.5rem; font-size: 0.85rem; color: var(--text-muted); font-family: monospace;">
+                        *Cotas calibradas para ajuste seguro en saltos y aceleración centrífuga
+                    </p>
+                </div>
+
+                <div class="specs-info">
+                    <h3>Especificaciones Físicas & Materiales</h3>
+                    <ul class="spec-list">
+                        <li class="spec-item">
+                            <span class="spec-label">Peso total sin alas:</span>
+                            <span class="spec-value">245 g (Ultraligero para Over-Ear)</span>
+                        </li>
+                        <li class="spec-item">
+                            <span class="spec-label">Peso de Alas Magnéticas Aether:</span>
+                            <span class="spec-value">18 g por par (Aleación Zamak ultra liviana)</span>
+                        </li>
+                        <li class="spec-item">
+                            <span class="spec-label">Presión de Calce (Clamping Force):</span>
+                            <span class="spec-value">4.2 N (Firme para giros sin fatiga craneal)</span>
+                        </li>
+                        <li class="spec-item">
+                            <span class="spec-label">Diámetro Interior Almohadilla:</span>
+                            <span class="spec-value">62 mm x 42 mm (Espuma viscoelástica con memoria)</span>
+                        </li>
+                        <li class="spec-item">
+                            <span class="spec-label">Material de Vincha:</span>
+                            <span class="spec-value">Acero inoxidable aeroespacial recubierto en cuero vegano</span>
+                        </li>
+                        <li class="spec-item">
+                            <span class="spec-label">Anclaje Magnético:</span>
+                            <span class="spec-value">Imanes de Neodimio N52 (Soporta caídas e impacto)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: VARIANTES BLUETOOTH VS CABLEADO (HI-RES) -->
+        <section id="variantes">
+            <div class="section-header">
+                <h2>3. Variantes de Conectividad</h2>
+                <p>Flexibilidad total: libertad inalámbrica sin latencia para patinar y conexión balanceada para audiofilia y producción musical.</p>
+            </div>
+
+            <div class="variants-grid">
+                <!-- Variante 1: Bluetooth -->
+                <div class="variant-card featured">
+                    <img src="lumos_img/wireless.jpg" style="width:100%;border-radius:12px;margin-bottom:1rem"><span class="variant-badge badge-wireless">Variante Principal • Wireless</span>
+                    <h3>LUMOS Wireless (BT 5.3)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        Orientado al escenario, pista de patinaje, gimnasio y uso urbano diario sin ataduras.
+                    </p>
+                    <ul class="variant-features">
+                        <li><span>✓</span> Chipset Bluetooth 5.3 con modo Ultra-Low Latency (40ms para danza y gaming).</li>
+                        <li><span>✓</span> Acelerómetro interno: los LEDs reaccionan a la cadencia de giro del patinador.</li>
+                        <li><span>✓</span> Batería de 650 mAh: hasta 32 horas continuas con luces encendidas.</li>
+                        <li><span>✓</span> Puerto USB-C de carga rápida (10 min de carga = 4 horas de reproducción).</li>
+                        <li><span>✓</span> Cancelación Activa de Ruido Híbrida (ANC -35dB) + Modo Transparencia.</li>
+                    </ul>
+                </div>
+
+                <!-- Variante 2: Cable Hi-Res -->
+                <div class="variant-card">
+                    <img src="lumos_img/wired.jpg" style="width:100%;border-radius:12px;margin-bottom:1rem"><span class="variant-badge badge-wired">Variante Audiófila / Híbrida • Cable Hi-Res</span>
+                    <h3>LUMOS Dual (Hi-Res Audio Jack 3.5mm)</h3>
+                    <p style="color: var(--text-muted); font-size: 0.95rem;">
+                        Incluye cable trenzado de alta gama bañado en oro con control de luces analógico y cero latencia.
+                    </p>
+                    <ul class="variant-features">
+                        <li><span>✓</span> Cable trenzado extraíble de 1.5m libre de oxígeno (OFC) con terminación dorada.</li>
+                        <li><span>✓</span> Soporte nativo para DACs externos y reproducción Hi-Res Audio (24-bit/96kHz).</li>
+                        <li><span>✓</span> Funciona aún con la batería del auricular en 0% (modo pasivo de emergencia).</li>
+                        <li><span>✓</span> Conector mini-jack con rosca dorada de seguridad para evitar tirones en escenario.</li>
+                        <li><span>✓</span> Incluye adaptador estéreo bañado en oro de 6.35 mm para mesas de mezcla y DJ.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 4: MODELOS Y DISEÑOS ALTERNATIVOS -->
+        <section id="modelos">
+            <div class="section-header">
+                <h2>4. Catálogo de Modelos y Diseños Alternativos</h2>
+                <p>Una familia de productos completa para cubrir diferentes rangos de precio, edades y disciplinas deportivas.</p>
+            </div>
+
+            <div class="models-grid">
+                <!-- Modelo A -->
+                <div class="model-card">
+                    <img src="lumos_img/hero.jpg" style="width:100%;aspect-ratio:1;object-fit:cover"><div class="model-header">
+                        <div class="target">Insignia Over-Ear</div>
+                        <h4>Astral Omni</h4>
+                    </div>
+                    <div class="model-body">
+                        <p>
+                            El modelo premium mostrado en el render. Con cúpulas cerradas, doble halo LED RGB cósmico, anclaje de Alas Aether y empaque en libro grimorio coleccionable.
+                        </p>
+                        <div class="model-price">
+                            <span class="price-label" style="font-size: 0.85rem; color: var(--text-muted);">PVP Argentina</span>
+                            <span class="price-tag">USD 129</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modelo B -->
+                <div class="model-card">
+                    <img src="lumos_img/glide.jpg" style="width:100%;aspect-ratio:1;object-fit:cover"><div class="model-header">
+                        <div class="target">Especial Patinaje & Danza</div>
+                        <h4>Glide Fit (Open-Ear)</h4>
+                    </div>
+                    <div class="model-body">
+                        <p>
+                            Diseño ergonómico de conducción ósea / oído abierto. No se cae durante piruetas complejas y permite escuchar las indicaciones del entrenador y la música de pista.
+                        </p>
+                        <div class="model-price">
+                            <span class="price-label" style="font-size: 0.85rem; color: var(--text-muted);">PVP Argentina</span>
+                            <span class="price-tag">USD 69</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modelo C -->
+                <div class="model-card">
+                    <img src="lumos_img/nova.jpg" style="width:100%;aspect-ratio:1;object-fit:cover"><div class="model-header">
+                        <div class="target">Uso Diario & Bolsillo</div>
+                        <h4>Nova Mini TWS</h4>
+                    </div>
+                    <div class="model-body">
+                        <p>
+                            Earbuds intraurales ultra compactos. El estuche de carga tiene forma de medallón astral de apertura rotativa con luz LED interior y carga inalámbrica.
+                        </p>
+                        <div class="model-price">
+                            <span class="price-label" style="font-size: 0.85rem; color: var(--text-muted);">PVP Argentina</span>
+                            <span class="price-tag">USD 49</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>© 2026 LUMOS — Sistema de Diseño de Marca, Ergonomía y Producción Comercial.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #64748b;">Desarrollado para el mercado argentino bajo estándares de registro de marca INPI y fabricación ODM internacional.</p>
+    </footer>
+
+</body>
+</html>
