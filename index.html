@@ -1361,63 +1361,75 @@
         };
 
         
-        // Renderizado Ultra-Rápido y Preciso del Auricular Fotorealista
+        
+        // Calibración Anatómica Estricta con MediaPipe Face Mesh
         var overlayImg = new Image();
         overlayImg.src = 'lumos_img/lumus_ar_overlay.png';
 
         function drawPhotorealHeadphones(context, lm, w, h) {
             if (!overlayImg.complete || overlayImg.naturalWidth === 0) return;
 
-            var forehead = lm[10];
-            var chin = lm[152];
-            var leftEar = lm[234];
-            var rightEar = lm[454];
-            var noseBridge = lm[168];
+            // 1. Puntos anatómicos de precisión
+            var topForehead = lm[10];  // Nacimiento del cabello
+            var chin = lm[152];         // Base del mentón
+            var leftEar = lm[234];      // Borde lateral izquierdo de la cabeza (oreja)
+            var rightEar = lm[454];     // Borde lateral derecho de la cabeza (oreja)
+            var noseBridge = lm[168];   // Centro facial entre los ojos
 
-            // Distancia entre orejas y altura facial
-            var earDist = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
-            var faceHeight = Math.hypot((chin.x - forehead.x) * w, (chin.y - forehead.y) * h);
+            // Coordenadas en píxeles reales del visor
+            var pForehead = { x: topForehead.x * w, y: topForehead.y * h };
+            var pChin = { x: chin.x * w, y: chin.y * h };
+            var pLeft = { x: leftEar.x * w, y: leftEar.y * h };
+            var pRight = { x: rightEar.x * w, y: rightEar.y * h };
+            var pNose = { x: noseBridge.x * w, y: noseBridge.y * h };
 
-            // Ángulo Roll (Inclinación lateral oreja-oreja)
-            var roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
+            // 2. Vector vertical anatómico de la cabeza (del mentón a la frente)
+            var faceHeight = Math.hypot(pChin.x - pForehead.x, pChin.y - pForehead.y);
+            var headAngle = Math.atan2(pRight.y - pLeft.y, pRight.x - pLeft.x);
 
-            // Ángulo Yaw (Giro de cara hacia los costados)
-            var deltaZ_ears = (rightEar.z - leftEar.z);
-            var deltaX_ears = (rightEar.x - leftEar.x);
-            var yaw = Math.atan2(deltaZ_ears, deltaX_ears);
+            // 3. Ubicación del centro del canal auditivo / sienes:
+            // Se ubica a la altura media entre ambas orejas, con ligera elevación hacia los ojos
+            var midEarX = (pLeft.x + pRight.x) / 2;
+            var midEarY = (pLeft.y + pRight.y) / 2;
 
-            // Centro entre orejas (colocado anatómicamente a la altura de los ojos/sienes)
-            var centerX = ((leftEar.x + rightEar.x) / 2) * w;
-            var centerY = (((leftEar.y + rightEar.y) / 2) * h) - (faceHeight * 0.18);
+            // La vincha de los auriculares debe elevarse sobre el cráneo
+            // Proyectamos el centro de anclaje del auricular a la altura exacta de las orejas/sienes
+            var earDist = Math.hypot(pRight.x - pLeft.x, pRight.y - pLeft.y);
 
-            // Tamaño proporcional del auricular (más grande que la cabeza para rodearla)
-            var baseWidth = earDist * 1.85;
-            var baseHeight = baseWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
+            // Escala natural Over-Ear:
+            // Unos auriculares over-ear reales tienen un ancho exterior de ~19 cm frente a un ancho de cráneo de ~15 cm
+            // Por tanto, el ancho total del render debe ser un 40% mayor que la distancia entre sienes (earDist * 1.42)
+            var targetWidth = earDist * 1.55;
+            var targetHeight = targetWidth * (overlayImg.naturalHeight / overlayImg.naturalWidth);
+
+            // El centro de masa del PNG del auricular (donde caen las orejas en el gráfico)
+            // En el PNG de los auriculares, la línea de las orejeras está situada aproximadamente al 55% de la altura total
+            var anchorOffsetY = targetHeight * 0.12;
+
+            // 4. Giro 3D (Yaw):
+            // Comparación de distancia relativa de la nariz a cada oreja
+            var distToLeft = Math.hypot(pNose.x - pLeft.x, pNose.y - pLeft.y);
+            var distToRight = Math.hypot(pNose.x - pRight.x, pNose.y - pRight.y);
+            // Ratio de giro: si miras a la derecha, distToRight disminuye
+            var turnRatio = (distToLeft - distToRight) / (distToLeft + distToRight);
+            // Limitamos y suavizamos el giro
+            var yawShift = turnRatio * (earDist * 0.28);
+            var yawScale = Math.max(0.75, 1 - Math.abs(turnRatio) * 0.22);
 
             context.save();
-            // Nos movemos al centro de la cabeza
-            context.translate(centerX, centerY);
-            // Rotamos con la inclinación de la cabeza
-            context.rotate(roll);
+            // Trasladar al centro craneal exacto
+            context.translate(midEarX + yawShift, midEarY - anchorOffsetY);
+            // Rotar exactamente con la inclinación del cráneo
+            context.rotate(headAngle);
+            // Escalar con perspectiva en giros de cabeza
+            context.scale(yawScale, 1);
 
-            // Efecto de perspectiva tridimensional al girar la cara:
-            // Al girar la cabeza, comprimimos horizontalmente y desplazamos según el Yaw
-            var yawCompress = Math.cos(yaw);
-            var yawShift = Math.sin(yaw) * (earDist * 0.25);
-            context.scale(yawCompress, 1);
-            context.translate(yawShift, 0);
-
-            // Dibujar el auricular LUMUS centrado
-            context.drawImage(overlayImg, -baseWidth / 2, -baseHeight / 2, baseWidth, baseHeight);
-
-            // Brillo dinámico según la orden seleccionada
-            if (currentTheme && currentTheme.tint) {
-                context.shadowColor = currentTheme.tint;
-                context.shadowBlur = 20;
-            }
+            // Dibujar el auricular perfectamente calzado
+            context.drawImage(overlayImg, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
 
             context.restore();
         }
+
 
         
         function onFaceResults3D(results) {
