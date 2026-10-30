@@ -1387,7 +1387,8 @@
         
         
         
-        // Motor de Realidad Aumentada LUMUS: Asset Completo Unificado
+        
+        // Motor de Realidad Aumentada LUMUS con Apertura Abierta Real
         var arColorImages = {
             nebula: new Image(),
             solaris: new Image(),
@@ -1395,15 +1396,14 @@
             aurora: new Image(),
             void: new Image()
         };
-        arColorImages.nebula.src = 'lumos_img/ar_nebula.png';
-        arColorImages.solaris.src = 'lumos_img/ar_solaris.png';
-        arColorImages.veridian.src = 'lumos_img/ar_veridian.png';
-        arColorImages.aurora.src = 'lumos_img/ar_aurora.png';
-        arColorImages.void.src = 'lumos_img/ar_void.png';
+        arColorImages.nebula.src = 'lumos_img/ar_wide_nebula.png';
+        arColorImages.solaris.src = 'lumos_img/ar_wide_solaris.png';
+        arColorImages.veridian.src = 'lumos_img/ar_wide_veridian.png';
+        arColorImages.aurora.src = 'lumos_img/ar_wide_aurora.png';
+        arColorImages.void.src = 'lumos_img/ar_wide_void.png';
 
         var activeColorKey = 'nebula';
 
-        // Manejador del Selector de Colores (cambio instantáneo de producto real)
         colorBtns.forEach(function(btn) {
             btn.addEventListener('click', function() {
                 colorBtns.forEach(function(b) { b.classList.remove('active'); });
@@ -1425,50 +1425,45 @@
             var activeImg = arColorImages[activeColorKey] || arColorImages.nebula;
             if (!activeImg.complete || activeImg.naturalWidth === 0) return;
 
-            // Puntos craneales de referencia MediaPipe FaceMesh
             var pForehead = { x: lm[10].x * w, y: lm[10].y * h };
             var pChin = { x: lm[152].x * w, y: lm[152].y * h };
             var pLeft = { x: lm[234].x * w, y: lm[234].y * h };
             var pRight = { x: lm[454].x * w, y: lm[454].y * h };
             var pNose = { x: lm[168].x * w, y: lm[168].y * h };
 
-            // Geometría de la cabeza
             var earDist = Math.hypot(pRight.x - pLeft.x, pRight.y - pLeft.y);
             var faceHeight = Math.hypot(pChin.x - pForehead.x, pChin.y - pForehead.y);
             var headAngle = Math.atan2(pRight.y - pLeft.y, pRight.x - pLeft.x);
 
-            // Escala Over-Ear calibrada:
-            // 1.82x earDist coloca exactamente las copas a ambos lados de las orejas sin apretar los ojos
-            var targetWidth = earDist * 1.82;
+            // Escala calibrada: la apertura entre copas ahora mide 860px/1420px del gráfico
+            // Con targetWidth = earDist * 1.64, las almohadillas quedan exactamente calzadas sobre las orejas reales!
+            var targetWidth = earDist * 1.64;
             var targetHeight = targetWidth * (activeImg.naturalHeight / activeImg.naturalWidth);
 
-            // Centro entre orejas
             var midEarX = (pLeft.x + pRight.x) / 2;
             var midEarY = (pLeft.y + pRight.y) / 2;
 
-            // Altura de calce: la vincha apoya sobre la coronilla del pelo y las copas caen en las orejas
-            var verticalOffset = faceHeight * 0.28;
+            // Altura exacta: las copas coinciden con las orejas y la vincha apoya sobre la coronilla
+            var verticalOffset = faceHeight * 0.18;
 
-            // Giro 3D suave (Yaw)
+            // Giro 3D natural
             var distToLeft = Math.hypot(pNose.x - pLeft.x, pNose.y - pLeft.y);
             var distToRight = Math.hypot(pNose.x - pRight.x, pNose.y - pRight.y);
             var turnRatio = (distToLeft - distToRight) / (distToLeft + distToRight);
-            var yawShift = turnRatio * (earDist * 0.26);
-            var yawScale = Math.max(0.78, 1 - Math.abs(turnRatio) * 0.2);
+            var yawShift = turnRatio * (earDist * 0.22);
+            var yawScale = Math.max(0.82, 1 - Math.abs(turnRatio) * 0.16);
 
             context.save();
-            // Trasladar al centro craneal exacto
             context.translate(midEarX + yawShift, midEarY - verticalOffset);
-            // Rotar con el ángulo del cráneo
             context.rotate(headAngle);
-            // Ajustar perspectiva en giros de cabeza
             context.scale(yawScale, 1);
 
-            // Dibujar el auricular LUMUS completo, unificado y continuo
+            // Dibujar el auricular abierto de cuerpo completo
             context.drawImage(activeImg, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
 
             context.restore();
         }
+
 
 
 
