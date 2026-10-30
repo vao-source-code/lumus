@@ -1183,60 +1183,86 @@
     </div>
 
     
-    <!-- Script de Realidad Aumentada 3D Profesional con Three.js & MediaPipe -->
+    
+    <!-- Script de Realidad Aumentada 3D LUMUS -->
     <script>
+    // 1. Funciones globales de apertura y cierre inmediatas (nunca fallan)
+    window.openArModal = function() {
+        var modal = document.getElementById('arModal');
+        var loading = document.getElementById('arLoading');
+        var statusText = document.getElementById('arStatusText');
+        
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+        if (loading) loading.style.display = 'flex';
+        if (statusText) statusText.textContent = 'Iniciando cámara y entorno 3D...';
+
+        // Disparar inicio de cámara y Three.js
+        if (window.lumusStartEngine) {
+            window.lumusStartEngine();
+        }
+    };
+
+    window.closeArModal = function() {
+        var modal = document.getElementById('arModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
+        if (window.lumusStopEngine) {
+            window.lumusStopEngine();
+        }
+    };
+
     (function() {
-        const openBtn = document.getElementById('openArBtn');
-        const closeBtn = document.getElementById('closeArBtn');
-        const modal = document.getElementById('arModal');
-        const video = document.getElementById('ar-video');
-        const viewport = document.querySelector('.ar-viewport');
-        const loading = document.getElementById('arLoading');
-        const statusText = document.getElementById('arStatusText');
-        const colorBtns = document.querySelectorAll('.ar-color-btn');
-        const colorNameLabel = document.getElementById('currentColorName');
-        const snapBtn = document.getElementById('snapShotBtn');
+        var video = document.getElementById('ar-video');
+        var viewport = document.querySelector('.ar-viewport');
+        var loading = document.getElementById('arLoading');
+        var statusText = document.getElementById('arStatusText');
+        var colorBtns = document.querySelectorAll('.ar-color-btn');
+        var colorNameLabel = document.getElementById('currentColorName');
+        var snapBtn = document.getElementById('snapShotBtn');
 
-        let cameraInstance = null;
-        let faceMeshInstance = null;
-        let stream = null;
+        var cameraInstance = null;
+        var faceMeshInstance = null;
+        var stream = null;
+        var renderer = null, scene = null, camera3D = null;
+        var headphoneGroup = null;
+        var arTextureMesh = null;
 
-        // Three.js 3D Engine Variables
-        let renderer, scene, camera3D;
-        let headphoneGroup = null;
-        let cupMaterials = [];
-        let ledMaterials = [];
-        let trimMaterials = [];
-
-        // Paletas cromáticas de las 5 Órdenes LUMUS
-        const colorThemes = {
-            nebula: { name: 'Nebula (Azul Cósmico)', led: 0xa855f7, cup: 0x0f172a, trim: 0xe6b758, emissive: 0x9333ea },
-            solaris: { name: 'Solaris (Fuego Solar)', led: 0xef4444, cup: 0x450a0a, trim: 0xf59e0b, emissive: 0xdc2626 },
-            veridian: { name: 'Veridian (Bosque de Jade)', led: 0x10b981, cup: 0x022c22, trim: 0xd4af37, emissive: 0x059669 },
-            aurora: { name: 'Aurora (Rosa Místico)', led: 0xec4899, cup: 0x500724, trim: 0xfb7185, emissive: 0xdb2777 },
-            void: { name: 'Stellar Void (Negro Signature)', led: 0xffffff, cup: 0x09090b, trim: 0xd97706, emissive: 0xd4d4d8 }
+        var colorThemes = {
+            nebula: { name: 'Nebula (Azul Cósmico)', tint: '#a855f7' },
+            solaris: { name: 'Solaris (Fuego Solar)', tint: '#ef4444' },
+            veridian: { name: 'Veridian (Bosque de Jade)', tint: '#10b981' },
+            aurora: { name: 'Aurora (Rosa Místico)', tint: '#ec4899' },
+            void: { name: 'Stellar Void (Negro Signature)', tint: '#ffffff' }
         };
+        var currentTheme = colorThemes.nebula;
 
-        let currentTheme = colorThemes.nebula;
+        colorBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                colorBtns.forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                var key = btn.getAttribute('data-color');
+                currentTheme = colorThemes[key] || colorThemes.nebula;
+                if (colorNameLabel) colorNameLabel.textContent = 'Edición: ' + currentTheme.name;
+            });
+        });
 
-        // Inicializar Escena Three.js
         function initThreeJS() {
-            const width = viewport.clientWidth || 640;
-            const height = viewport.clientHeight || 480;
-
-            // Si ya existe canvas previo, limpiarlo
-            const oldCanvas = document.getElementById('ar-canvas');
-            if (oldCanvas) oldCanvas.remove();
+            if (!viewport || renderer) return;
+            var w = viewport.clientWidth || 640;
+            var h = viewport.clientHeight || 480;
 
             scene = new THREE.Scene();
-
-            // Cámara de perspectiva coincidente con campo de visión de webcam (~60 grados)
-            camera3D = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera3D = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
             camera3D.position.set(0, 0, 500);
 
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.domElement.id = 'ar-canvas';
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0';
@@ -1244,51 +1270,25 @@
             renderer.domElement.style.width = '100%';
             renderer.domElement.style.height = '100%';
             renderer.domElement.style.pointerEvents = 'none';
-            // Efecto espejo idéntico al video
             renderer.domElement.style.transform = 'scaleX(-1)';
             viewport.appendChild(renderer.domElement);
 
-            // Iluminación ambiental y puntual de estudio
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            var ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(ambientLight);
 
-            const keyLight = new THREE.DirectionalLight(0xfffaed, 1.4);
-            keyLight.position.set(150, 200, 300);
-            scene.add(keyLight);
-
-            const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
-            fillLight.position.set(-150, -50, 200);
-            scene.add(fillLight);
-
-            // Construir el Modelo 3D de Auriculares LUMUS
-            build3DHeadphones();
-        }
-
-        
-        
-        let arTextureMesh = null;
-        let textureLoader = new THREE.TextureLoader();
-
-        // Construcción con el Asset Fotorealista LUMUS
-        function build3DHeadphones() {
             headphoneGroup = new THREE.Group();
-
-            // Cargamos el asset fotorrealista de alta definición con alas doradas y aros galácticos
+            var textureLoader = new THREE.TextureLoader();
             textureLoader.load('lumos_img/lumus_ar_overlay.png', function(texture) {
-                texture.colorSpace = THREE.SRGBColorSpace;
-                
-                // Plano tridimensional con transparencia y renderizado de doble cara
-                const planeGeo = new THREE.PlaneGeometry(280, 260);
-                const planeMat = new THREE.MeshBasicMaterial({
+                if (THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+                var planeGeo = new THREE.PlaneGeometry(280, 260);
+                var planeMat = new THREE.MeshBasicMaterial({
                     map: texture,
                     transparent: true,
                     opacity: 1.0,
                     depthWrite: false,
                     side: THREE.DoubleSide
                 });
-
                 arTextureMesh = new THREE.Mesh(planeGeo, planeMat);
-                // Centrado en el canal auditivo / sienes
                 arTextureMesh.position.set(0, 15, 0);
                 headphoneGroup.add(arTextureMesh);
             });
@@ -1297,7 +1297,69 @@
             scene.add(headphoneGroup);
         }
 
-        // Posicionamiento Espacial y Rotación Espejo Sincronizada
+        window.lumusStartEngine = async function() {
+            try {
+                if (typeof THREE !== 'undefined') {
+                    initThreeJS();
+                }
+
+                if (!stream) {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                        audio: false
+                    });
+                    video.srcObject = stream;
+                    await video.play();
+                }
+
+                if (statusText) statusText.textContent = 'Cargando detector facial...';
+
+                if (window.FaceMesh && !faceMeshInstance) {
+                    faceMeshInstance = new FaceMesh({
+                        locateFile: function(f) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + f; }
+                    });
+
+                    faceMeshInstance.setOptions({
+                        maxNumFaces: 1,
+                        refineLandmarks: true,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.5
+                    });
+
+                    faceMeshInstance.onResults(onFaceResults3D);
+
+                    cameraInstance = new Camera(video, {
+                        onFrame: async function() {
+                            if (faceMeshInstance && video.readyState >= 2) {
+                                await faceMeshInstance.send({ image: video });
+                            }
+                        },
+                        width: 640,
+                        height: 480
+                    });
+
+                    await cameraInstance.start();
+                }
+                if (loading) loading.style.display = 'none';
+
+            } catch (err) {
+                console.warn('AR Error:', err);
+                if (statusText) statusText.innerHTML = '⚠️ Permite el acceso a la cámara frontal para activar la prueba.';
+            }
+        };
+
+        window.lumusStopEngine = function() {
+            if (stream) {
+                stream.getTracks().forEach(function(t) { t.stop(); });
+                stream = null;
+            }
+            if (cameraInstance) {
+                cameraInstance.stop();
+                cameraInstance = null;
+            }
+            if (headphoneGroup) headphoneGroup.visible = false;
+        };
+
         function onFaceResults3D(results) {
             if (!renderer || !scene || !camera3D || !headphoneGroup) return;
 
@@ -1307,86 +1369,85 @@
                 return;
             }
 
-            const lm = results.multiFaceLandmarks[0];
-            const w = viewport.clientWidth || 640;
-            const h = viewport.clientHeight || 480;
+            var lm = results.multiFaceLandmarks[0];
+            var w = viewport.clientWidth || 640;
+            var h = viewport.clientHeight || 480;
 
-            const forehead = lm[10];
-            const chin = lm[152];
-            const leftEar = lm[234];
-            const rightEar = lm[454];
-            const noseTip = lm[1];
+            var forehead = lm[10];
+            var chin = lm[152];
+            var leftEar = lm[234];
+            var rightEar = lm[454];
 
-            // 1. ROTACIÓN CON CORRECCIÓN DE ESPEJO (SCALE X = -1)
-            
-            // Yaw: diferencia en profundidad Z entre orejas
-            // En modo espejo selfie, si giras a tu derecha en cámara, el ángulo debe rotar en el mismo sentido visual
-            const deltaZ_ears = (rightEar.z - leftEar.z);
-            const deltaX_ears = (rightEar.x - leftEar.x);
-            // Invertimos signo para corregir el espejo de la cámara
-            const yaw = Math.atan2(deltaZ_ears, deltaX_ears) * 1.5;
+            var deltaZ_ears = (rightEar.z - leftEar.z);
+            var deltaX_ears = (rightEar.x - leftEar.x);
+            var yaw = Math.atan2(deltaZ_ears, deltaX_ears) * 1.5;
 
-            // Pitch: mirar arriba o abajo
-            const deltaZ_face = (chin.z - forehead.z);
-            const deltaY_face = (chin.y - forehead.y);
-            const pitch = Math.atan2(deltaZ_face, deltaY_face) * 1.2;
+            var deltaZ_face = (chin.z - forehead.z);
+            var deltaY_face = (chin.y - forehead.y);
+            var pitch = Math.atan2(deltaZ_face, deltaY_face) * 1.2;
 
-            // Roll: inclinación lateral oreja-hombro
-            const roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
+            var roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
 
             headphoneGroup.rotation.order = 'YXZ';
             headphoneGroup.rotation.set(-pitch, yaw, roll);
 
-            // 2. POSICIÓN ANATÓMICA
-            const earDistPixels = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
-            const faceHeightPixels = Math.hypot((chin.x - forehead.x) * w, (chin.y - forehead.y) * h);
+            var earDistPixels = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
+            var faceHeightPixels = Math.hypot((chin.x - forehead.x) * w, (chin.y - forehead.y) * h);
 
-            // Centro entre orejas
-            const midEarScreenX = ((leftEar.x + rightEar.x) / 2 - 0.5) * w;
-            const midEarScreenY = -((leftEar.y + rightEar.y) / 2 - 0.5) * h + (faceHeightPixels * 0.15);
+            var midEarScreenX = ((leftEar.x + rightEar.x) / 2 - 0.5) * w;
+            var midEarScreenY = -((leftEar.y + rightEar.y) / 2 - 0.5) * h + (faceHeightPixels * 0.15);
 
-            const estimatedZ = 500 - (earDistPixels * 2.5);
+            var estimatedZ = 500 - (earDistPixels * 2.5);
             headphoneGroup.position.set(midEarScreenX, midEarScreenY, Math.min(Math.max(estimatedZ, 80), 380));
 
-            // 3. ESCALA ADAPTADA AL ROSTRO
-            const baseScale = (earDistPixels / 175) * 1.15;
+            var baseScale = (earDistPixels / 175) * 1.15;
             headphoneGroup.scale.set(baseScale, baseScale, baseScale);
 
             headphoneGroup.visible = true;
             renderer.render(scene, camera3D);
         }
 
+        if (snapBtn) {
+            snapBtn.addEventListener('click', function() {
+                var w = viewport.clientWidth;
+                var h = viewport.clientHeight;
+                var captureCanvas = document.createElement('canvas');
+                captureCanvas.width = w;
+                captureCanvas.height = h;
+                var cCtx = captureCanvas.getContext('2d');
 
+                cCtx.save();
+                cCtx.scale(-1, 1);
+                cCtx.drawImage(video, -w, 0, w, h);
+                cCtx.restore();
 
+                if (renderer) {
+                    cCtx.drawImage(renderer.domElement, 0, 0, w, h);
+                }
 
-        // Captura de selfie en alta resolución
-        snapBtn.addEventListener('click', () => {
-            const w = viewport.clientWidth;
-            const h = viewport.clientHeight;
-            const captureCanvas = document.createElement('canvas');
-            captureCanvas.width = w;
-            captureCanvas.height = h;
-            const cCtx = captureCanvas.getContext('2d');
+                var link = document.createElement('a');
+                link.download = 'LUMUS-3D-TryOn.png';
+                link.href = captureCanvas.toDataURL('image/png');
+                link.click();
+            });
+        }
 
-            // 1. Dibujar video espejado
-            cCtx.save();
-            cCtx.scale(-1, 1);
-            cCtx.drawImage(video, -w, 0, w, h);
-            cCtx.restore();
+        // Listener en botón flotante
+        var btn = document.getElementById('openArBtn');
+        if (btn) {
+            btn.onclick = window.openArModal;
+        }
 
-            // 2. Superponer render 3D de Three.js
-            if (renderer) {
-                cCtx.drawImage(renderer.domElement, 0, 0, w, h);
-            }
-
-            const link = document.createElement('a');
-            link.download = `LUMUS-3D-TryOn-${currentTheme.name.split(' ')[0]}.png`;
-            link.href = captureCanvas.toDataURL('image/png');
-            link.click();
-        });
-
+        // Cerrar al click fuera
+        var modal = document.getElementById('arModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) window.closeArModal();
+            });
+        }
     })();
     </script>
+
 
 
 </body>
