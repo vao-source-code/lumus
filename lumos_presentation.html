@@ -1264,129 +1264,125 @@
             build3DHeadphones();
         }
 
-        // Construcción Procedural del Modelo 3D LUMUS con materiales PBR y relieve
+        
+        // Construcción del Rig 3D con Centro de Giro en el Cráneo (Head Pivot Rig)
         function build3DHeadphones() {
             headphoneGroup = new THREE.Group();
             cupMaterials = [];
             ledMaterials = [];
             trimMaterials = [];
 
-            // Material Cúpula (Cuero sintético / policarbonato metalizado)
+            // PBR Materials
             const cupMat = new THREE.MeshStandardMaterial({
                 color: currentTheme.cup,
-                roughness: 0.35,
-                metalness: 0.6
+                roughness: 0.3,
+                metalness: 0.65
             });
             cupMaterials.push(cupMat);
 
-            // Material Oro Pulido
             const goldMat = new THREE.MeshStandardMaterial({
                 color: currentTheme.trim,
-                roughness: 0.25,
-                metalness: 0.9
+                roughness: 0.22,
+                metalness: 0.95
             });
             trimMaterials.push(goldMat);
 
-            // Material Aro LED Bioluminiscente
             const ledMat = new THREE.MeshStandardMaterial({
                 color: currentTheme.led,
                 emissive: currentTheme.emissive,
-                emissiveIntensity: 2.2,
+                emissiveIntensity: 2.8,
                 roughness: 0.1,
                 metalness: 0.1
             });
             ledMaterials.push(ledMat);
 
-            // Material Almohadillas acústicas
             const cushionMat = new THREE.MeshStandardMaterial({
                 color: 0x05070e,
-                roughness: 0.8,
-                metalness: 0.1
+                roughness: 0.85,
+                metalness: 0.05
             });
 
-            // 1. ARCO DE VINCHA SUPERIOR (Tubo 3D Curvado)
+            // 1. VINCHA SUPERIOR ARQUEADA SOBRE EL CRÁNEO
+            // Pasa por arriba de la cabeza (Y de 0 a 145) y ligeramente curvada en Z hacia la coronilla
             const curve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(-110, -30, 0),
-                new THREE.Vector3(-85, 90, 5),
-                new THREE.Vector3(0, 125, 10),
-                new THREE.Vector3(85, 90, 5),
-                new THREE.Vector3(110, -30, 0)
+                new THREE.Vector3(-118, 0, 0),
+                new THREE.Vector3(-90, 110, -10),
+                new THREE.Vector3(0, 145, -15),
+                new THREE.Vector3(90, 110, -10),
+                new THREE.Vector3(118, 0, 0)
             ]);
 
-            const headbandGeo = new THREE.TubeGeometry(curve, 32, 8.5, 12, false);
+            const headbandGeo = new THREE.TubeGeometry(curve, 36, 10, 12, false);
             const headbandMesh = new THREE.Mesh(headbandGeo, cupMat);
             headphoneGroup.add(headbandMesh);
 
-            // Ribete exterior dorado en la vincha
-            const goldRibbonGeo = new THREE.TubeGeometry(curve, 32, 2.8, 8, false);
+            const goldRibbonGeo = new THREE.TubeGeometry(curve, 36, 2.8, 8, false);
             const goldRibbonMesh = new THREE.Mesh(goldRibbonGeo, goldMat);
             headphoneGroup.add(goldRibbonMesh);
 
-            // 2. CÚPULAS OVER-EAR IZQUIERDA Y DERECHA
-            [-112, 112].forEach((xPos, idx) => {
+            // 2. CÚPULAS OVER-EAR EN LAS OREJAS (A los costados del centro de giro de la cabeza)
+            [-118, 118].forEach((xPos, idx) => {
                 const isLeft = idx === 0;
                 const earcupSubGroup = new THREE.Group();
-                earcupSubGroup.position.set(xPos, -35, 0);
-                earcupSubGroup.rotation.y = isLeft ? 0.2 : -0.2;
-                earcupSubGroup.rotation.z = isLeft ? 0.08 : -0.08;
+                earcupSubGroup.position.set(xPos, 0, 0);
 
-                // 2.1 Almohadilla acústica interior (Toroide 3D)
-                const cushionGeo = new THREE.TorusGeometry(32, 12, 16, 32);
+                // 2.1 Almohadilla acústica interior (Toroide 3D apoyado contra la cabeza)
+                const cushionGeo = new THREE.TorusGeometry(34, 13, 16, 32);
                 const cushionMesh = new THREE.Mesh(cushionGeo, cushionMat);
                 cushionMesh.rotation.y = Math.PI / 2;
                 earcupSubGroup.add(cushionMesh);
 
-                // 2.2 Cúpula exterior principal (Cilindro con curvatura)
-                const cupGeo = new THREE.CylinderGeometry(35, 33, 26, 32);
+                // 2.2 Cúpula exterior principal (Cilindro macizo)
+                const cupGeo = new THREE.CylinderGeometry(36, 34, 28, 32);
                 const cupMesh = new THREE.Mesh(cupGeo, cupMat);
                 cupMesh.rotation.z = Math.PI / 2;
-                cupMesh.position.x = isLeft ? -10 : 10;
+                cupMesh.position.x = isLeft ? -12 : 12;
                 earcupSubGroup.add(cupMesh);
 
-                // 2.3 Aro de luz LED reactivo
-                const ledGeo = new THREE.TorusGeometry(30, 3.2, 16, 32);
+                // 2.3 Aro de luz LED reactivo en la cara exterior
+                const ledGeo = new THREE.TorusGeometry(31, 3.5, 16, 32);
                 const ledMesh = new THREE.Mesh(ledGeo, ledMat);
                 ledMesh.rotation.y = Math.PI / 2;
-                ledMesh.position.x = isLeft ? -22 : 22;
+                ledMesh.position.x = isLeft ? -25 : 25;
                 earcupSubGroup.add(ledMesh);
 
                 // 2.4 Marco exterior de oro
-                const rimGeo = new THREE.TorusGeometry(35.5, 2.5, 12, 32);
+                const rimGeo = new THREE.TorusGeometry(36.5, 2.8, 12, 32);
                 const rimMesh = new THREE.Mesh(rimGeo, goldMat);
                 rimMesh.rotation.y = Math.PI / 2;
-                rimMesh.position.x = isLeft ? -18 : 18;
+                rimMesh.position.x = isLeft ? -22 : 22;
                 earcupSubGroup.add(rimMesh);
 
                 // 2.5 Tapa central con emblema Brújula Astral
-                const badgeGeo = new THREE.CylinderGeometry(18, 18, 2, 24);
+                const badgeGeo = new THREE.CylinderGeometry(19, 19, 2.5, 24);
                 const badgeMesh = new THREE.Mesh(badgeGeo, goldMat);
                 badgeMesh.rotation.z = Math.PI / 2;
-                badgeMesh.position.x = isLeft ? -23.5 : 23.5;
+                badgeMesh.position.x = isLeft ? -26.5 : 26.5;
                 earcupSubGroup.add(badgeMesh);
 
-                // 2.6 Alas Aether 3D en oro inyectado
+                // 2.6 Alas Aether 3D en oro
                 const wingShape = new THREE.Shape();
                 wingShape.moveTo(0, 0);
-                wingShape.quadraticCurveTo(15, 30, 45, 65);
-                wingShape.quadraticCurveTo(20, 40, 5, 20);
+                wingShape.quadraticCurveTo(18, 35, 50, 75);
+                wingShape.quadraticCurveTo(22, 45, 6, 22);
                 wingShape.closePath();
 
-                const extrudeSettings = { depth: 3, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 1, bevelThickness: 1 };
+                const extrudeSettings = { depth: 3.5, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 1.2, bevelThickness: 1.2 };
                 const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
                 const wingMesh = new THREE.Mesh(wingGeo, goldMat);
-                wingMesh.scale.set(0.7, 0.7, 0.7);
-                wingMesh.position.set(isLeft ? -20 : 20, 8, isLeft ? 10 : -10);
+                wingMesh.scale.set(0.75, 0.75, 0.75);
+                wingMesh.position.set(isLeft ? -22 : 22, 12, isLeft ? 12 : -12);
                 wingMesh.rotation.y = isLeft ? Math.PI : 0;
-                wingMesh.rotation.z = isLeft ? 0.4 : -0.4;
+                wingMesh.rotation.z = isLeft ? 0.38 : -0.38;
                 earcupSubGroup.add(wingMesh);
 
                 headphoneGroup.add(earcupSubGroup);
             });
 
-            // Ocultar hasta detectar rostro
             headphoneGroup.visible = false;
             scene.add(headphoneGroup);
         }
+
 
         // Actualizar paleta en tiempo real
         function updateTheme3D(theme) {
@@ -1484,7 +1480,8 @@
         }
 
         
-        // Posicionamiento Espacial 3D y Rotación Facial Multi-Eje
+        
+        // Posicionamiento con Pivote Craneal Real (Orbit Pivot)
         function onFaceResults3D(results) {
             if (!renderer || !scene || !camera3D || !headphoneGroup) return;
 
@@ -1498,13 +1495,12 @@
             const w = viewport.clientWidth || 640;
             const h = viewport.clientHeight || 480;
 
-            // Puntos de referencia anatómicos clave de MediaPipe (con coordenadas X, Y, Z normalizadas):
-            // 1: Punta de la nariz (sobresale hacia adelante en Z)
-            // 168: Entreojo / puente nasal (centro geométrico de la cara)
-            // 10: Tope de la frente
-            // 152: Mentón inferior
-            // 234: Oreja / sien izquierda
-            // 454: Oreja / sien derecha
+            // 1: Nariz (punta frontal)
+            // 168: Entreojo (centro frontal)
+            // 10: Frente
+            // 152: Mentón
+            // 234: Lado izquierdo cabeza (sien/oreja)
+            // 454: Lado derecho cabeza (sien/oreja)
             const noseTip = lm[1];
             const noseBridge = lm[168];
             const forehead = lm[10];
@@ -1512,52 +1508,48 @@
             const leftEar = lm[234];
             const rightEar = lm[454];
 
-            // 1. CÁLCULO DE ROTACIÓN 3D COMPLETA (Yaw, Pitch, Roll)
+            // 1. ROTACIÓN RIGID-BODY DE LA CABEZA:
             
-            // YAW (Giro lateral hacia izquierda o derecha):
-            // Comparamos el desplazamiento horizontal de la punta de la nariz respecto al centro de las dos orejas
-            const midEarX = (leftEar.x + rightEar.x) / 2;
-            const faceWidth = Math.hypot(rightEar.x - leftEar.x, rightEar.y - leftEar.y);
-            // Si miras a la derecha, la nariz se desplaza a la derecha del centro entre orejas
-            const yawRaw = (noseTip.x - midEarX) / (faceWidth * 0.35);
-            // Amplificamos y limitamos a ángulos naturales (-75 a +75 grados)
-            const yaw = Math.max(Math.min(yawRaw * 1.35, 1.3), -1.3);
+            // Yaw (Giro hacia los lados en Y):
+            // La diferencia en Z entre ambas orejas indica cuántos grados giró el cráneo
+            // Si la oreja izquierda se acerca (Z baja) y la derecha se aleja (Z sube), giraste la cabeza
+            const deltaZ_ears = (rightEar.z - leftEar.z);
+            const deltaX_ears = (rightEar.x - leftEar.x);
+            // Ángulo en radianes del giro de cabeza:
+            const yaw = Math.atan2(deltaZ_ears, deltaX_ears) * 1.8;
 
-            // PITCH (Inclinación vertical: mirar hacia arriba o hacia abajo):
-            // Comparamos la posición de la punta de la nariz respecto a la línea media entre frente y mentón
-            const midFaceY = (forehead.y + chin.y) / 2;
-            const faceHeight = Math.hypot(chin.x - forehead.x, chin.y - forehead.y);
-            const pitchRaw = (noseTip.y - midFaceY) / (faceHeight * 0.28);
-            const pitch = Math.max(Math.min((pitchRaw - 0.2) * 1.25, 1.1), -1.1);
+            // Pitch (Mirar arriba/abajo en X):
+            const deltaZ_face = (chin.z - forehead.z);
+            const deltaY_face = (chin.y - forehead.y);
+            const pitch = Math.atan2(deltaZ_face, deltaY_face) * 1.5;
 
-            // ROLL (Inclinación lateral de oreja a oreja):
+            // Roll (Inclinación lateral oreja-hombro en Z):
             const roll = Math.atan2((rightEar.y - leftEar.y) * h, (rightEar.x - leftEar.x) * w);
 
-            // Aplicamos rotación fluida tipo Euler con orden 'YXZ' para que los giros no se bloqueen
+            // Orden de rotación para articulación de cuello
             headphoneGroup.rotation.order = 'YXZ';
-            // Dado que el canvas está espejado (scaleX = -1), invertimos el signo de Yaw para concordancia natural
             headphoneGroup.rotation.set(-pitch, -yaw, roll);
 
-            // 2. POSICIONAMIENTO Y PROFUNDIDAD Z
-            const faceHeightPixels = faceHeight * h;
+            // 2. POSICIONAMIENTO EN EL CENTRO DE LA CABEZA (Eje del canal auditivo)
+            const faceHeightPixels = Math.hypot(chin.x - forehead.x, chin.y - forehead.y) * h;
             const earDistPixels = Math.hypot((rightEar.x - leftEar.x) * w, (rightEar.y - leftEar.y) * h);
 
-            // Centro X en pantalla
-            const worldX = (noseBridge.x - 0.5) * w;
-            // Centro Y: colocado justo a la altura del canal auditivo / sienes (arriba de la nariz)
-            const worldY = -(noseBridge.y - 0.5) * h + (faceHeightPixels * 0.22);
-            // Profundidad Z: responde a la cercanía de la cara
-            const estimatedZ = 500 - (earDistPixels * 2.7);
+            // El centro de las dos orejas en X e Y
+            const midEarScreenX = ((leftEar.x + rightEar.x) / 2 - 0.5) * w;
+            const midEarScreenY = -((leftEar.y + rightEar.y) / 2 - 0.5) * h;
 
-            headphoneGroup.position.set(worldX, worldY, Math.min(Math.max(estimatedZ, 80), 380));
+            // El pivote de los auriculares se ubica exactamente en el centro medio entre las dos orejas
+            const estimatedZ = 500 - (earDistPixels * 2.8);
+            headphoneGroup.position.set(midEarScreenX, midEarScreenY, Math.min(Math.max(estimatedZ, 80), 380));
 
-            // 3. ESCALA 3D PROPORCIONAL
-            const baseScale = (earDistPixels / 190) * 1.18;
+            // 3. ESCALA DEL AURICULAR (Se adapta al tamaño de la cabeza)
+            const baseScale = (earDistPixels / 195) * 1.25;
             headphoneGroup.scale.set(baseScale, baseScale, baseScale);
 
             headphoneGroup.visible = true;
             renderer.render(scene, camera3D);
         }
+
 
 
         // Captura de selfie en alta resolución
